@@ -10,6 +10,8 @@ Simulation, Assessment Design + relasi detail (competency & simulation per desig
 sinkronisasi terjadwal ke Google Sheets, dan download CSV lokal.
 Modul **Master Document** (Document Generator): editor rich-text TipTap berhalaman A4,
 konten disimpan HTML per halaman. Spesifikasi: `PRD_Document_Generator.md`.
+Modul **Upload Document**: upload file HTML read-only ke tabel yang sama
+(`read_only = 'document'`, isi 1 baris `page = 0`). Spesifikasi: `PRD_Upload_Document.md`.
 
 **Stack (jangan diganti tanpa persetujuan user):**
 - Backend: NestJS 10 + TypeORM 0.3 + MySQL (database `cms_master`), JWT single-admin
@@ -61,6 +63,8 @@ cms-ptr-2/
     src/modules/documents/ <- Master Document: entity (master_document + master_document_content),
                               dto.ts, sanitize.ts (allowlist HTML), documents.service.ts
                               (PUT content transaksional + revision), controller, *.spec.ts
+    src/modules/upload-documents/ <- Upload Document: html-file.ts (validasi file + peringatan),
+                              service/controller (multer memory storage, maks 2 MB), *.spec.ts
     src/common/decorators/current-user.decorator.ts <- @CurrentUsername() dari JWT (kolom audit)
     src/modules/masters/example-master/ <- TEMPLATE modul master generik (jangan hapus)
     src/database/seed.ts   <- seed admin + data contoh (Level 3, DSG-ALL, 3 competency,
@@ -86,6 +90,7 @@ cms-ptr-2/
       example-masters/page.tsx <- template UI master generik
       documents/page.tsx           <- list dokumen (search, filter status/aktif, paging, aksi)
       documents/[id]/edit/page.tsx <- editor A4 (autosave, status, preview)
+      upload-documents/page.tsx    <- list + modal upload/ganti file/edit, preview, unduh, hapus
     src/lib/document/      <- logika murni Document Generator (diuji Vitest):
                               constants.ts (geometri A4), paginator.ts, measure.ts (ukur DOM),
                               html.ts (split/merge halaman), paste.ts (bersihkan Word/GDocs),
@@ -93,6 +98,8 @@ cms-ptr-2/
     src/components/document/ <- DocumentEditor, Toolbar, extensions.ts (PageBreak, Indent,
                                 DocTable), pagination.ts (dekorasi batas halaman), DocumentPreview,
                                 PageHeaderFooter (editor+preview), HeaderFooterPanel
+    src/lib/uploadDocument.ts  <- tipe, validasi klien, buildPreviewSrcdoc (CSP + buang meta refresh/base)
+    src/components/upload-document/HtmlPreview.tsx <- preview di <iframe sandbox=""> (tanpa izin)
     .env.example           <- NEXT_PUBLIC_API_URL=http://localhost:3001/api
                              (aktif sebagai frontend/.env.local)
 ```
@@ -181,6 +188,18 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
   Hanya margin-bawah (tanpa margin collapse), font Arial 11pt. Mengubahnya mengubah pembagian halaman.
 - Body limit JSON 5 MB (`main.ts` `useBodyParser`); maks 200 halaman, 512 KB/halaman.
 
+## 5b. Upload Document (dokumen HTML read-only)
+
+- Tabel sama dengan Document Generator; pembeda kolom `master_document.read_only`:
+  `'document'` = upload, `NULL` = editor. **Setiap query modul documents wajib `read_only IS NULL`**,
+  modul upload-documents wajib `read_only = 'document'` (dokumen modul lain -> 404). ID unik lintas keduanya.
+- Isi HTML disimpan **utuh tanpa sanitasi** di 1 baris `master_document_content` `page = 0`
+  (`page_count = 0`, status selalu FINAL, ganti file = update baris itu + `revision+1`).
+- Karena tidak disanitasi: render HANYA lewat `buildPreviewSrcdoc()` di `<iframe sandbox="">` tanpa
+  token izin apa pun. Jangan `dangerouslySetInnerHTML`, jangan tambah `allow-scripts`/`allow-same-origin`.
+  Unduhan: attachment + `nosniff`. File tidak pernah ditulis ke `/uploads` (publik).
+- Upload: multer memory storage, `MAX_HTML_BYTES` 2 MB (terpisah dari `MAX_FILE_MB`), `.html/.htm`, UTF-8.
+
 ## 6. Sinkronisasi Google (Sheets jalan, Drive mati)
 
 - **Sheets (AKTIF jika dikonfigurasi)**: `SheetsService.collectTables()` = 1 sumber data
@@ -245,9 +264,9 @@ Prioritas kira-kira dari atas. Kerjakan hanya bila diminta user.
 
 ```powershell
 cd backend; npm run build                      # harus 0 error
-cd backend; npm test                           # Jest (documents service + sanitize)
+cd backend; npm test                           # Jest (documents, sanitize, upload-documents)
 cd frontend; npx tsc --noEmit                  # cek tipe (lihat known issue example-masters)
-cd frontend; npm test                          # Vitest (paginator, split/merge, paste)
+cd frontend; npm test                          # Vitest (paginator, split/merge, paste, upload preview)
 # lalu dengan server jalan + sudah login:
 # POST /api/auth/login -> token
 # GET  /api/assessment-designs?limit=5 (Bearer) -> meta + data

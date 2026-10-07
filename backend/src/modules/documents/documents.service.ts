@@ -6,7 +6,7 @@ import {
   PayloadTooLargeException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, EntityManager, Repository } from 'typeorm';
+import { Brackets, DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { paginateResponse } from '../../common/dto/pagination.dto';
 import { HEADER_FOOTER_FIELDS, MasterDocument, MasterDocumentContent } from './document.entity';
 import {
@@ -23,6 +23,8 @@ import { isEmptyDocumentHtml, sanitizeDocumentHtml } from './sanitize';
 const NOT_FOUND = 'Dokumen tidak ditemukan';
 const ID_TAKEN = 'ID sudah dipakai';
 const REVISION_CONFLICT = 'Dokumen telah diubah di tab/sesi lain';
+// Modul ini hanya memproses dokumen editor; dokumen upload (read_only = 'document') dianggap tidak ada
+const EDITOR_DOC = { is_deleted: false, read_only: IsNull() };
 
 function pickHeaderFooter(d: MasterDocument) {
   return Object.fromEntries(HEADER_FOOTER_FIELDS.map((f) => [f, d[f]])) as Pick<MasterDocument, (typeof HEADER_FOOTER_FIELDS)[number]>;
@@ -38,7 +40,7 @@ export class DocumentsService {
 
   list(q: DocumentQueryDto) {
     const page = q.page ?? 1, limit = q.limit ?? 10;
-    const qb = this.docs.createQueryBuilder('d').where('d.is_deleted = false');
+    const qb = this.docs.createQueryBuilder('d').where('d.is_deleted = false').andWhere('d.read_only IS NULL');
     if (q.status) qb.andWhere('d.status = :status', { status: q.status });
     if (q.is_active !== undefined) qb.andWhere('d.is_active = :active', { active: q.is_active });
     if (q.search) {
@@ -65,7 +67,7 @@ export class DocumentsService {
   }
 
   async create(dto: CreateDocumentDto, username: string) {
-    // ID unik termasuk dokumen yang sudah di-soft delete
+    // ID unik termasuk dokumen yang sudah di-soft delete dan dokumen upload (tabel sama)
     if (await this.docs.exists({ where: { document_id: dto.document_id } })) throw new ConflictException(ID_TAKEN);
     return this.docs.save(
       this.docs.create({ ...dto, status: 'DRAFT', page_count: 0, revision: 0, created_by: username, modified_by: username }),
@@ -173,7 +175,7 @@ export class DocumentsService {
   }
 
   private async findActive(id: string) {
-    const doc = await this.docs.findOne({ where: { document_id: id, is_deleted: false } });
+    const doc = await this.docs.findOne({ where: { document_id: id, ...EDITOR_DOC } });
     if (!doc) throw new NotFoundException(NOT_FOUND);
     return doc;
   }
@@ -181,7 +183,7 @@ export class DocumentsService {
   // SELECT ... FOR UPDATE: serialisasi simpan konten/finalize per dokumen
   private async lockActive(m: EntityManager, id: string) {
     const doc = await m.findOne(MasterDocument, {
-      where: { document_id: id, is_deleted: false },
+      where: { document_id: id, ...EDITOR_DOC },
       lock: { mode: 'pessimistic_write' },
     });
     if (!doc) throw new NotFoundException(NOT_FOUND);

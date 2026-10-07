@@ -11,6 +11,7 @@ import { ExampleMasterModule } from './modules/masters/example-master/example-ma
 import { AssessmentModule } from './modules/assessment/assessment.module';
 import { SheetsModule } from './modules/sheets/sheets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { UploadDocumentsModule } from './modules/upload-documents/upload-documents.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
     AssessmentModule,
     SheetsModule,
     DocumentsModule,
+    UploadDocumentsModule,
   ],
 })
 export class AppModule {}
