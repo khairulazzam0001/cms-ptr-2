@@ -1,0 +1,23 @@
+# Dependencies & build
+node_modules/
+backend/dist/
+frontend/.next/
+frontend/out/
+
+# Secrets / env (pakai *.env.example sebagai template)
+.env
+.env.*
+!.env.example
+backend/google-service-account.json
+*service-account*.json
+
+# Runtime data & log
+backend/uploads/
+*.log
+
+# Office lock files
+~$*
+
+# Dokumen proyek lain / build artefak
+TSD-*.docx
+*.tsbuildinfo

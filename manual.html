@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Panduan Pengguna — CMS Data Master (Assessment Design)</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1e293b; line-height: 1.55; }
+  h1 { font-size: 24px; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 24px; }
+  h2 { font-size: 17px; color: #0f172a; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-top: 28px; page-break-after: avoid; }
+  h3 { font-size: 14px; margin-bottom: 4px; page-break-after: avoid; }
+  img { max-width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; margin: 8px 0; }
+  ol, ul { margin-top: 4px; }
+  li { margin-bottom: 4px; }
+  .tip { background: #f1f5f9; border-left: 4px solid #0f172a; padding: 8px 12px; margin: 10px 0; border-radius: 0 6px 6px 0; }
+  .cover { text-align: center; padding-top: 120px; page-break-after: always; }
+  .cover h1 { font-size: 32px; }
+  .pagebreak { page-break-before: always; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12px; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+  th { background: #f1f5f9; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Panduan Pengguna</h1>
+  <h1>CMS Data Master</h1>
+  <p class="subtitle">Modul Master Assessment Design<br>Untuk pengguna awam — dilengkapi gambar langkah demi langkah</p>
+  <p>September 2026</p>
+</div>
+
+<h2>1. Membuka Aplikasi dan Login</h2>
+<ol>
+  <li>Pastikan server sudah dinyalakan (lihat <i>PANDUAN-MENJALANKAN.md</i>).</li>
+  <li>Buka browser (Chrome / Edge) lalu ketik alamat: <code>http://localhost:3000/login</code></li>
+  <li>Isi <b>Username</b> dengan <code>admin</code> dan <b>Password</b> dengan <code>admin123</code>, lalu klik tombol <b>Masuk</b>.</li>
+</ol>
+<img src="manual-img/01-login.png" alt="Halaman login">
+
+<h2>2. Tampilan Utama (Dashboard)</h2>
+<p>Setelah login kamu masuk ke Dashboard. Menu di sebelah kiri:</p>
+<ul>
+  <li><b>Assessment Design</b> — daftar rancangan assessment (menu utama).</li>
+  <li><b>Master Level / Design / Competency / Simulation</b> — data pendukung untuk mengisi pilihan (dropdown).</li>
+  <li><b>Sheets Sync</b> — kirim data ke Google Sheets &amp; unduh CSV.</li>
+  <li><b>Logout</b> — keluar dari aplikasi. Selalu klik ini setelah selesai.</li>
+</ul>
+<img src="manual-img/02-dashboard.png" alt="Dashboard">
+
+<h2 class="pagebreak">3. Melihat Daftar Assessment Design</h2>
+<p>Klik menu <b>Assessment Design</b>. Setiap baris menampilkan Id, Name, Level, Design, jumlah Competency, jumlah Simulation, dan tombol aksi.</p>
+<ol>
+  <li><b>Search</b> — ketik id/nama untuk mencari, hasil tersaring otomatis.</li>
+  <li><b>Prev / Next</b> — pindah halaman jika datanya banyak.</li>
+  <li><b>View Competency</b> — lihat daftar competency milik design ini.</li>
+  <li><b>View Simulation</b> — lihat daftar simulation milik design ini.</li>
+  <li><b>Edit</b> — ubah nama/level/design. <b>Delete</b> — hapus (ada konfirmasi dulu).</li>
+</ol>
+<img src="manual-img/03-design-list.png" alt="Daftar assessment design">
+
+<h2>4. Menambah Assessment Design Baru</h2>
+<ol>
+  <li>Di halaman Assessment Design List, klik tombol hitam <b>Add New Assessment Design</b> di kanan atas.</li>
+  <li>Isi <b>id</b> (kode unik, misal <code>10002</code> — tidak boleh sama dengan yang sudah ada).</li>
+  <li>Isi <b>Name</b> (nama design, misal <code>DESIGN B</code>).</li>
+  <li>Pilih <b>Level</b> dan <b>Design</b> dari daftar pilihan.</li>
+  <li>Klik <b>Save</b> untuk menyimpan, atau <b>Cancel</b> untuk batal.</li>
+</ol>
+<img src="manual-img/04-design-add.png" alt="Form tambah assessment design">
+<div class="tip"><b>Tips:</b> Jika pilihan Level/Design kosong, isi dulu lewat menu <b>Master Level</b> dan <b>Master Design</b> (lihat Bab 7).</div>
+
+<h2 class="pagebreak">5. Mengelola Competency Milik Design</h2>
+<h3>5.1 Melihat daftar</h3>
+<p>Dari Assessment Design List, klik <b>View Competency</b> pada baris yang diinginkan. Tabel menampilkan id, nama competency, description, dan level.</p>
+<img src="manual-img/05-competency.png" alt="Daftar competency">
+<h3>5.2 Menambah competency</h3>
+<ol>
+  <li>Klik tombol <b>Add Competency</b> di kanan atas.</li>
+  <li>Cari competency lewat kolom Search bila perlu.</li>
+  <li>Klik tombol <b>Add</b> pada baris yang diinginkan. Data yang sudah ada tidak muncul lagi di daftar ini.</li>
+  <li>Klik <b>Tutup</b> jika selesai.</li>
+</ol>
+<img src="manual-img/06-competency-add.png" alt="Tambah competency">
+<h3>5.3 Menghapus</h3>
+<p>Klik tombol <b>Delete</b> lalu jawab <b>OK</b> pada konfirmasi. Data master competency-nya tidak ikut terhapus — hanya dilepas dari design ini.</p>
+
+<h2 class="pagebreak">6. Mengelola Simulation Milik Design</h2>
+<h3>6.1 Melihat daftar</h3>
+<p>Dari Assessment Design List, klik <b>View Simulation</b>. Tabel menampilkan id, nama simulation, group, duration (menit), level, dan channel. Di bawah tabel ada <b>Total duration</b> (jumlah menit semua simulation).</p>
+<img src="manual-img/07-simulation.png" alt="Daftar simulation">
+<h3>6.2 Menambah simulation</h3>
+<ol>
+  <li>Klik tombol <b>Add New</b> di kanan atas.</li>
+  <li>Saring lewat kolom Search atau dropdown <b>group simulation</b>.</li>
+  <li>Klik tombol <b>Add</b> pada baris yang diinginkan, lalu <b>Tutup</b>.</li>
+</ol>
+<img src="manual-img/08-simulation-add.png" alt="Tambah simulation">
+<h3>6.3 Detail &amp; hapus</h3>
+<p>Tombol <b>Detail</b> menampilkan isi lengkap satu simulation. Tombol <b>Delete</b> melepas simulation dari design (ada konfirmasi).</p>
+
+<h2 class="pagebreak">7. Mengisi Data Master Pendukung</h2>
+<p>Menu <b>Master Level, Master Design, Master Competency, Master Simulation</b> cara pakainya sama semua:</p>
+<ol>
+  <li>Isi form pendek di kartu atas, klik <b>Tambah</b>.</li>
+  <li>Cari data lewat kolom Search.</li>
+  <li>Hapus dengan tombol <b>Delete</b> (ada konfirmasi).</li>
+</ol>
+<p>Contoh tampilan Master Level:</p>
+<img src="manual-img/09-levels.png" alt="Master level">
+<div class="tip"><b>Catatan untuk Master Simulation:</b> isi <b>duration</b> dalam menit (angka), karena dipakai menghitung Total duration di Bab 6.</div>
+
+<h2>8. Kirim ke Google Sheets &amp; Unduh CSV</h2>
+<p>Buka menu <b>Sheets Sync</b>. Halaman ini berisi:</p>
+<ul>
+  <li>Status scheduler Sheets (aktif/tidak, jadwal, sync terakhir).</li>
+  <li>Tombol <b>Sync Sheets Sekarang</b> — mengirim semua master ke spreadsheet Google (7 tab: levels, designs, competencies, simulations, assessment_designs, design_competencies, design_simulations).</li>
+  <li>Tombol <b>Upload CSV Sekarang</b> — hanya berfungsi bila admin mengaktifkan fitur Drive (saat ini nonaktif, lihat catatan di bawah).</li>
+  <li>Tombol <b>levels.csv, designs.csv, …</b> — mengunduh data sebagai file CSV langsung ke komputermu. File ini bisa dibuka di Excel atau di-upload manual ke Google Drive.</li>
+</ul>
+<img src="manual-img/10-sheets.png" alt="Halaman sheets sync">
+<div class="tip"><b>Catatan:</b> Upload otomatis ke Google Drive saat ini dimatikan karena aturan Google (akun service tidak punya kuota penyimpanan). Gunakan tombol download CSV, lalu upload manual ke Drive bila perlu.</div>
+
+<h2 class="pagebreak">9. Selesai Memakai &amp; Masalah Umum</h2>
+<h3>Keluar aplikasi</h3>
+<p>Klik <b>Logout</b> di menu kiri setelah selesai, apalagi di komputer bersama.</p>
+<h3>Masalah yang sering terjadi</h3>
+<table>
+  <tr><th>Gejala</th><th>Yang dilakukan</th></tr>
+  <tr><td>Halaman tidak bisa dibuka / "tidak dapat menjangkau situs"</td><td>Server belum dinyalakan. Ikuti <i>PANDUAN-MENJALANKAN.md</i> (backend dulu, baru frontend).</td></tr>
+  <tr><td>Username/password ditolak berulang</td><td>Lempar kembali (logout) lalu login ulang. Jika tetap gagal, hubungi admin — mungkin database di-reset dan perlu seed ulang.</td></tr>
+  <tr><td>Pilihan Level/Design kosong saat tambah data</td><td>Isi dulu lewat menu Master Level / Master Design (Bab 7).</td></tr>
+  <tr><td>Tombol Add tidak muncul di picker</td><td>Artinya data itu sudah ada di design — daftar picker hanya menampilkan yang belum ditambahkan.</td></tr>
+  <tr><td>File CSV berantakan saat dibuka di Excel</td><td>Saat import, pilih encoding <b>UTF-8</b> dan pemisah <b>koma</b>. File dari aplikasi sudah berformat UTF-8 dengan BOM.</td></tr>
+</table>
+
+</body>
+</html>
