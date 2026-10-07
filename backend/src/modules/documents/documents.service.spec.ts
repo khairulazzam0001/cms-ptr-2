@@ -4,6 +4,7 @@ import {
   NotFoundException,
   PayloadTooLargeException,
 } from '@nestjs/common';
+import { IsNull } from 'typeorm';
 import { DocumentsService } from './documents.service';
 import { MasterDocument, MasterDocumentContent } from './document.entity';
 import { MAX_PAGE_BYTES } from './dto';
@@ -63,6 +64,12 @@ describe('DocumentsService', () => {
   });
 
   describe('get', () => {
+    it('hanya dokumen editor (read_only IS NULL); dokumen upload dianggap tidak ada (AC-UD-10)', async () => {
+      const { svc, docsRepo } = setup(makeDoc());
+      await svc.get('DOC-1');
+      expect(docsRepo.findOne).toHaveBeenCalledWith({ where: { document_id: 'DOC-1', is_deleted: false, read_only: IsNull() } });
+    });
+
     it('404 bila dokumen tidak ada atau terhapus', async () => {
       const { svc } = setup(null);
       await expect(svc.get('NOPE')).rejects.toThrow(NotFoundException);

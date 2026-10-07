@@ -13,6 +13,10 @@ import {
 export const DOCUMENT_STATUSES = ['DRAFT', 'FINAL'] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
+// master_document.read_only: 'document' = dokumen hasil upload HTML (PRD_Upload_Document.md),
+// NULL = dokumen dari editor (Document Generator). Kedua modul tidak saling memproses.
+export const READ_ONLY_DOCUMENT = 'document';
+
 export const DEFAULT_FOOTER_RIGHT = 'Halaman {page} dari {pages}';
 export const HEADER_FOOTER_FIELDS = [
   'header_left',
@@ -41,6 +45,9 @@ export class MasterDocument {
 
   @Column({ default: true })
   is_active: boolean;
+
+  @Column({ type: 'varchar', length: 20, nullable: true, default: null })
+  read_only?: string | null;
 
   // Denormalisasi jumlah halaman untuk list (tanpa join ke konten)
   @Column({ type: 'int', default: 0 })

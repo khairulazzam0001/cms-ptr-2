@@ -10,6 +10,7 @@ const MENUS = [
   { href: '/dashboard/masters/competencies', label: 'Master Competency' },
   { href: '/dashboard/masters/simulations', label: 'Master Simulation' },
   { href: '/dashboard/masters/documents', label: 'Master Document' },
+  { href: '/dashboard/masters/upload-documents', label: 'Upload Document' },
   { href: '/dashboard/masters/sheets-sync', label: 'Sheets Sync' },
   { href: '/dashboard/masters/example-masters', label: 'Contoh Master' },
 ];

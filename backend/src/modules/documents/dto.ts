@@ -24,7 +24,7 @@ const ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 const ID_MESSAGE = 'document_id hanya boleh huruf, angka, "-" dan "_"';
 
 // Query string 'true'/'false' -> boolean (nilai lain dibiarkan agar ditolak @IsBoolean)
-const toBoolean = ({ value }: { value: unknown }) =>
+export const toBoolean = ({ value }: { value: unknown }) =>
   value === 'true' || value === true ? true : value === 'false' || value === false ? false : value;
 
 // ---- Query (list + filter) ----
