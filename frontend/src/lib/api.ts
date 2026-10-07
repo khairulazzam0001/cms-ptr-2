@@ -25,6 +25,18 @@ api.interceptors.response.use(
   },
 );
 
+// Pesan error dari respons API (NestJS: message string | string[])
+export function apiErrorMessage(err: unknown, fallback = 'Terjadi kesalahan'): string {
+  if (axios.isAxiosError(err)) {
+    if (!err.response) return 'Tidak dapat terhubung ke server';
+    if (err.response.status === 413) return 'Ukuran dokumen terlalu besar';
+    const msg = (err.response.data as { message?: unknown } | undefined)?.message;
+    if (Array.isArray(msg)) return msg.join(', ');
+    if (typeof msg === 'string') return msg;
+  }
+  return fallback;
+}
+
 export type Paged<T> ={ data: T[]; meta: { total: number; page: number; limit: number; totalPages: number } };
 
 export async function uploadFile(file: File, kind: 'dokumen' | 'gambar' = 'dokumen') {

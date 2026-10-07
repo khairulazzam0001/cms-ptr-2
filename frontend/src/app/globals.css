@@ -11,3 +11,118 @@ body { @apply bg-slate-100 text-slate-900; }
 .table { @apply w-full text-sm; }
 .table th { @apply text-left p-2 border-b bg-slate-50; }
 .table td { @apply p-2 border-b; }
+
+/* ===== Document Generator: isi dokumen ===== */
+/* Dipakai editor DAN preview. Ubah dengan hati-hati: tinggi blok di sini menentukan pembagian halaman A4. */
+.doc-content {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  line-height: 1.4;
+  color: #000;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0;
+}
+/* hanya margin-bawah (tanpa collapse) agar tinggi blok bisa dijumlahkan */
+.doc-content p { margin: 0 0 6pt; }
+.doc-content h1 { font-size: 20pt; font-weight: 700; line-height: 1.25; margin: 0 0 8pt; }
+.doc-content h2 { font-size: 16pt; font-weight: 700; line-height: 1.25; margin: 0 0 6pt; }
+.doc-content h3 { font-size: 13pt; font-weight: 700; line-height: 1.25; margin: 0 0 6pt; }
+.doc-content ul, .doc-content ol { margin: 0 0 6pt; padding-left: 24pt; }
+.doc-content ul { list-style: disc; }
+.doc-content ul ul { list-style: circle; }
+.doc-content ol { list-style: decimal; }
+.doc-content li > p, .doc-content td p, .doc-content th p { margin: 0; }
+.doc-content table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0 0 8pt; }
+.doc-content td, .doc-content th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; text-align: left; }
+.doc-content th { font-weight: 700; background: #f1f5f9; }
+.doc-content table[data-borderless] td, .doc-content table[data-borderless] th { border-color: transparent; }
+/* paragraf kosong tetap setinggi satu baris (seperti di editor) */
+.doc-content :is(p, h1, h2, h3):empty::after { content: "\00a0"; }
+.doc-content div[data-page-break] { height: 0; }
+/* paragraf justify yang dipecah per baris: baris terakhir potongan yang masih berlanjut (data-split)
+   tetap rata kiri-kanan, seperti di editor (di sana baris itu bukan baris terakhir paragraf) */
+.doc-content p[data-split][style*="justify"] { text-align-last: justify; }
+
+/* ===== Document Generator: header & footer (di margin, 12,7 mm dari tepi kertas) ===== */
+.doc-hf { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 2; }
+.doc-hf-row {
+  position: absolute; left: 25.4mm; right: 25.4mm;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  font: 9pt/1.2 Arial, Helvetica, sans-serif; color: #475569;
+}
+.doc-hf-row > span { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.doc-hf-row > span:nth-child(2) { text-align: center; }
+.doc-hf-row > span:nth-child(3) { text-align: right; }
+.doc-hf-header { top: 12.7mm; }
+.doc-hf-footer { bottom: 12.7mm; }
+
+/* ===== Document Generator: editor A4 ===== */
+.doc-canvas { background: #e2e8f0; padding: 24px; overflow: auto; }
+.doc-sheet {
+  width: 210mm;
+  margin: 0 auto;
+  padding: 25.4mm 25.4mm 0;
+  background: #fff;
+  overflow: clip;
+  position: relative;
+}
+.doc-sheet .ProseMirror { outline: none; }
+.doc-sheet .tableWrapper { margin: 0 0 8pt; }
+.doc-sheet .tableWrapper > table { margin: 0; }
+.doc-sheet .selectedCell { background: #dbeafe; }
+
+/* jarak antar lembar: sisa halaman + margin bawah + celah abu-abu + margin atas */
+.pg-spacer { position: relative; user-select: none; }
+/* batas halaman di tengah paragraf: span block memutus baris tepat di awal baris berikutnya */
+.pg-line-spacer { display: block; }
+.pg-spacer::after {
+  content: "Halaman " attr(data-page);
+  position: absolute; right: 0; top: calc(var(--pg-a) + 24px + 6px);
+  font: 10px Arial, sans-serif; color: #94a3b8;
+}
+.pg-spacer::before,
+.doc-sheet tr.pg-split > :first-child::before,
+.doc-sheet li.pg-split::before {
+  content: "";
+  position: absolute; left: -2000px; right: -2000px; top: var(--pg-a); height: 24px;
+  background: #e2e8f0; pointer-events: none; z-index: 1;
+}
+/* batas halaman di tengah tabel/list: baris/item didorong ke lembar berikutnya */
+.doc-sheet tr.pg-split > td, .doc-sheet tr.pg-split > th { padding-top: calc(var(--pg-t) + 4px); position: relative; }
+.doc-sheet li.pg-split { padding-top: var(--pg-t); position: relative; }
+/* ruang header tabel yang diulang di halaman lanjutan (tampil di preview/data simpan) */
+.doc-sheet tr.pg-split[data-reserve] > :first-child::after {
+  content: "↑ header tabel diulang di halaman ini";
+  position: absolute; left: 0; top: calc(var(--pg-a) + 24px + 96px);
+  font: 10px Arial, sans-serif; color: #94a3b8; white-space: nowrap;
+}
+.doc-sheet .pg-overflow { outline: 2px dashed #dc2626; outline-offset: 2px; }
+
+.doc-sheet div[data-page-break] { position: relative; }
+.doc-sheet div[data-page-break]::after {
+  content: "Page break";
+  position: absolute; left: 0; right: 0; top: -9px; height: 18px;
+  border-top: 2px dashed #6366f1;
+  font: 10px/14px Arial, sans-serif; color: #6366f1; text-align: center;
+  cursor: pointer;
+}
+.doc-sheet div[data-page-break].ProseMirror-selectednode::after { background: #e0e7ff; }
+
+/* ===== Document Generator: preview per halaman A4 ===== */
+.doc-preview-sheet {
+  width: 210mm;
+  min-height: 297mm; /* blok > 1 halaman (FR-26) boleh memanjang */
+  margin: 0 auto;
+  padding: 25.4mm;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+  position: relative;
+}
+.doc-preview-sheet > .doc-content { display: flow-root; }
+
+.tb-btn { @apply px-2 py-1 rounded text-sm text-slate-800 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-transparent; }
+.tb-active { @apply bg-slate-300; }
+.tb-select { @apply border rounded px-1 py-1 text-sm bg-white; }

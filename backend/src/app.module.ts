@@ -10,6 +10,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { ExampleMasterModule } from './modules/masters/example-master/example-master.module';
 import { AssessmentModule } from './modules/assessment/assessment.module';
 import { SheetsModule } from './modules/sheets/sheets.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SheetsModule } from './modules/sheets/sheets.module';
     ExampleMasterModule,
     AssessmentModule,
     SheetsModule,
+    DocumentsModule,
   ],
 })
 export class AppModule {}
