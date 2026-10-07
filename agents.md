@@ -8,11 +8,15 @@ Bahasa komunikasi dengan user: Indonesia.
 CMS admin untuk **Master Assessment Design**: kelola Level, Design, Competency,
 Simulation, Assessment Design + relasi detail (competency & simulation per design),
 sinkronisasi terjadwal ke Google Sheets, dan download CSV lokal.
+Modul **Master Document** (Document Generator): editor rich-text TipTap berhalaman A4,
+konten disimpan HTML per halaman. Spesifikasi: `PRD_Document_Generator.md`.
 
 **Stack (jangan diganti tanpa persetujuan user):**
 - Backend: NestJS 10 + TypeORM 0.3 + MySQL (database `cms_master`), JWT single-admin
 - Frontend: Next.js 14 (App Router) + Tailwind + Axios
 - Integrasi: `googleapis` (Sheets API v4, Drive API v3), `@nestjs/schedule` (cron)
+- Document Generator: TipTap 3.31.4 (frontend, versi dikunci), `sanitize-html` 2.17.0 (backend, dikunci)
+- Test: Jest + ts-jest (backend, `*.spec.ts`), Vitest 3 + jsdom (frontend, `*.test.ts`)
 
 ## 2. Struktur repo
 
@@ -54,6 +58,10 @@ cms-ptr-2/
       sheets.controller.ts <- GET /sheets/status, POST /sheets/sync,
                               POST /sheets/sync-drive, GET /sheets/export/:tab
       sheets.module.ts
+    src/modules/documents/ <- Master Document: entity (master_document + master_document_content),
+                              dto.ts, sanitize.ts (allowlist HTML), documents.service.ts
+                              (PUT content transaksional + revision), controller, *.spec.ts
+    src/common/decorators/current-user.decorator.ts <- @CurrentUsername() dari JWT (kolom audit)
     src/modules/masters/example-master/ <- TEMPLATE modul master generik (jangan hapus)
     src/database/seed.ts   <- seed admin + data contoh (Level 3, DSG-ALL, 3 competency,
                               4 simulation, design 10001). Jalan via `npm run seed:admin`.
@@ -76,6 +84,15 @@ cms-ptr-2/
                                                           (belum ada Edit & paging)
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
       example-masters/page.tsx <- template UI master generik
+      documents/page.tsx           <- list dokumen (search, filter status/aktif, paging, aksi)
+      documents/[id]/edit/page.tsx <- editor A4 (autosave, status, preview)
+    src/lib/document/      <- logika murni Document Generator (diuji Vitest):
+                              constants.ts (geometri A4), paginator.ts, measure.ts (ukur DOM),
+                              html.ts (split/merge halaman), paste.ts (bersihkan Word/GDocs),
+                              headerFooter.ts (token {page}/{pages})
+    src/components/document/ <- DocumentEditor, Toolbar, extensions.ts (PageBreak, Indent,
+                                DocTable), pagination.ts (dekorasi batas halaman), DocumentPreview,
+                                PageHeaderFooter (editor+preview), HeaderFooterPanel
     .env.example           <- NEXT_PUBLIC_API_URL=http://localhost:3001/api
                              (aktif sebagai frontend/.env.local)
 ```
@@ -139,6 +156,31 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
 - Download CSV: `api.get('/sheets/export/'+tab, {responseType:'blob'})` -> trigger `<a download>`.
 - Style: class utilitas di `globals.css` (`.card .input .btn .btn-dark .btn-light .table`).
 
+## 5a. Document Generator (Master Document)
+
+- **Konten per halaman**: `PUT /documents/:id/content {revision, pages[]}` mengganti seluruh
+  konten dalam 1 transaksi (`SELECT … FOR UPDATE`, cek `revision`, hapus fisik baris konten lama,
+  insert baru, `revision+1`, FINAL -> DRAFT). Hapus fisik konten = pengecualian aturan soft delete
+  (UNIQUE `document_id,page`); header tetap soft delete. `revision` beda -> 409.
+- **ID dokumen unik termasuk yang soft-deleted** (create/duplicate -> 409 "ID sudah dipakai").
+- **Sanitasi wajib di backend** (`sanitize.ts`). Atribut penanda (`data-page-break`,
+  `data-continued`, `data-split`, `data-repeated`, `data-borderless`) hanya bernilai `"true"`; `start/colspan/rowspan`
+  hanya angka. Menambah format di editor = tambah allowlist di sini juga, atau format hilang saat simpan.
+- **Pagination**: satu instance editor; `measure.ts` mengukur tinggi blok di DOM -> `paginator.ts`
+  (fungsi murni) -> dipakai untuk dekorasi editor, payload simpan (`splitIntoPages`), dan preview.
+  Saat dimuat, `mergePages` menyatukan tabel/list/paragraf lanjutan.
+- **Paragraf dipecah per baris** (widow/orphan 2 baris): baris diukur malas (`lines()` di
+  `measure.ts`, via `getClientRects` + `view.posAtCoords`) hanya bila paragraf tidak muat.
+  Unit/fragment paragraf memakai **offset konten ProseMirror** (1 per karakter, 1 per `<br>`);
+  `sliceInline` di `html.ts` memotong HTML pada offset yang sama. Di editor, batasnya berupa widget
+  `span.pg-line-spacer` (display:block) di awal baris.
+- **Header/footer**: 7 kolom di `master_document`, dikirim di `PUT /content` (`header_footer`).
+  Dirender `PageHeaderFooter` di margin (overlay per lembar di editor, posisi `i × (A4 + jarak)`),
+  teks polos dengan token `{page}`/`{pages}` — jangan dirender sebagai HTML.
+- **CSS `.doc-content` di `globals.css` menentukan tinggi blok** — dipakai editor DAN preview.
+  Hanya margin-bawah (tanpa margin collapse), font Arial 11pt. Mengubahnya mengubah pembagian halaman.
+- Body limit JSON 5 MB (`main.ts` `useBodyParser`); maks 200 halaman, 512 KB/halaman.
+
 ## 6. Sinkronisasi Google (Sheets jalan, Drive mati)
 
 - **Sheets (AKTIF jika dikonfigurasi)**: `SheetsService.collectTables()` = 1 sumber data
@@ -172,6 +214,12 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
 8. Ganti `JWT_SECRET` lalu semua login 401 = secret dibaca sebelum `.env` dimuat.
    Sudah diperbaiki via `import 'dotenv/config'` + `registerAsync`; jangan regresi.
 9. Network tab penuh request berulang = `useEffect` tanpa dependency array (lihat §5).
+10. `sanitize-html` >= 2.18 memakai `htmlparser2` ESM-only -> Jest gagal load. Tetap di 2.17.0.
+11. Vitest 5 butuh `@types/node` >= 22 (proyek: 20) -> pakai Vitest 3. TipTap butuh
+    `@types/react-dom@18` eksplisit agar npm tidak menarik v19 (ERESOLVE).
+12. Lembar A4 (794 px) melebarkan `<main>` -> `main` di `dashboard/layout.tsx` wajib `min-w-0`.
+13. Jangan `npm run build` frontend saat `npm run dev` jalan (menimpa `.next`); cukup `npx tsc --noEmit`.
+14. Respons 413 (body > 5 MB) berasal dari express = HTML, bukan JSON; frontend pakai `apiErrorMessage`.
 
 ## 8. Known issues (backlog — belum diperbaiki, jangan dianggap fitur)
 
@@ -197,7 +245,9 @@ Prioritas kira-kira dari atas. Kerjakan hanya bila diminta user.
 
 ```powershell
 cd backend; npm run build                      # harus 0 error
+cd backend; npm test                           # Jest (documents service + sanitize)
 cd frontend; npx tsc --noEmit                  # cek tipe (lihat known issue example-masters)
+cd frontend; npm test                          # Vitest (paginator, split/merge, paste)
 # lalu dengan server jalan + sudah login:
 # POST /api/auth/login -> token
 # GET  /api/assessment-designs?limit=5 (Bearer) -> meta + data

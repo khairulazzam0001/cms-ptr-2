@@ -11,6 +11,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.setGlobalPrefix('api');
+  // Simpan konten dokumen: maks 200 halaman x 512 KB, dibatasi 5 MB per request (default 100 KB)
+  app.useBodyParser('json', { limit: '5mb' });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
   );
