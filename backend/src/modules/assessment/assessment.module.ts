@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AssessmentCopyService } from './assessment-copy.service';
 import { AssessmentService } from './assessment.service';
 import {
   AssessmentDesignsController,
@@ -37,7 +38,7 @@ import {
     SimulationsController,
     AssessmentDesignsController,
   ],
-  providers: [AssessmentService],
+  providers: [AssessmentService, AssessmentCopyService],
   exports: [AssessmentService],
 })
 export class AssessmentModule {}

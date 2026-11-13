@@ -51,6 +51,21 @@ cms-ptr-2/
       controllers.ts       <- Levels/Designs/Competencies/Simulations/
                               AssessmentDesignsController
       assessment.module.ts
+    src/modules/assessment-data/  <- tabel pelengkap ERD (lihat §2a)
+      entities.ts          <- 16 entity: master_key_action, ref_group_rating,
+                              ref_mapping_group_rating, trans_batch_project, trans_participant,
+                              trans_participant_assessor, master_actor, ref_activity_type,
+                              master_activity, master_prompt, master_scenario_activity,
+                              master_chat, master_call, master_folder, master_email,
+                              master_email_attachment
+      dto.ts               <- Query/Create/Update DTO (filter WAJIB di sini, §4)
+      assessment-data.service.ts <- CRUD 5 master (actor/activity/scenario-activity/chat/email):
+                              soft delete, revive id yang sudah dihapus, clean() -> '' jadi NULL
+                              untuk kolom FK, applySearch() dukung kolom ber-alias
+      controllers.ts       <- /activities, /scenario-activities, /chats, /emails, /actors
+                              + options: /activity-types/options/all, /actors/options/all,
+                              /prompts/options/all
+      assessment-data.module.ts <- TypeOrmModule.forFeature(16 entity) + controllers/providers
     src/modules/sheets/
       sheets.service.ts    <- Sheets API: status(), collectTables(), syncAll(),
                               exportCsv(tab); kredensial via GOOGLE_SERVICE_ACCOUNT_JSON
@@ -86,6 +101,11 @@ cms-ptr-2/
                                                        (filter group_simulation_id)
       levels|designs|competencies|simulations/page.tsx <- create + search + delete
                                                           (belum ada Edit & paging)
+      activities/page.tsx          <- CRUD + paging + filter Activity type/level/design/simulation
+      scenario-activities/page.tsx <- CRUD + paging + filter activity (form terpanjang)
+      chats/page.tsx               <- CRUD + paging + filter activity
+      emails/page.tsx              <- CRUD + paging + filter activity
+      actors/page.tsx              <- CRUD + paging + filter design/level + superior (self-ref)
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
       example-masters/page.tsx <- template UI master generik
       documents/page.tsx           <- list dokumen (search, filter status/aktif, paging, aksi)
@@ -103,6 +123,77 @@ cms-ptr-2/
     .env.example           <- NEXT_PUBLIC_API_URL=http://localhost:3001/api
                              (aktif sebagai frontend/.env.local)
 ```
+
+### 2a. Peta tabel vs ERD (dbdiagram "assessment-ano")
+
+Sumber: https://dbdiagram.io/d/assessment-ano-6ad87bc7f8963ca19c6f79e6
+
+- **Sudah ada + dipakai UI**: `master_level`, `master_design`, `master_competency`,
+  `master_simulation`, `master_assessment_design`,
+  `master_assessment_design_detail_competency`,
+  `master_assessment_design_detail_simulation` (modul `assessment`);
+  `master_document`, `master_document_content` (modul `documents`).
+- **Dibuat oleh `assessment-data` — sudah ada API + UI (CRUD lengkap)**:
+  `master_actor`, `master_activity`, `master_scenario_activity`, `master_chat`, `master_email`
+  (halaman: `/dashboard/masters/actors|activities|scenario-activities|chats|emails`).
+- **Dibuat oleh `assessment-data` — entity saja (belum ada API/UI)**: `master_key_action`,
+  `ref_group_rating`, `ref_mapping_group_rating`, `trans_batch_project`, `trans_participant`,
+  `trans_participant_assessor`, `ref_activity_type`,
+  `master_prompt`, `master_call`, `master_folder`, `master_email_attachment`.
+  Dropdown form memakai `/actors|prompts|activity-types/options/all` (kosong sampai di-seed).
+- Tabel dibuat otomatis oleh `synchronize: true` saat backend start (DEV). 45 foreign key
+  mengikuti garis `Ref:` di ERD (termasuk `master_actor.superior` self-reference dan
+  `master_folder.{level_id,design_id}`).
+- **Beda sengaja** dari ERD (jangan "dibenarkan" tanpa migrasi data):
+  - `master_document_content`: PK `document_content_id` (uuid) + kolom `content_html`,
+    bukan `doc_content_id`/`document_content` (dipakai modul Document Generator + Upload).
+    Data sample diimpor dengan mapping `doc_content_id -> document_content_id` dan
+    `document_content -> content_html`; kolom `document_content_md` disimpan apa adanya.
+  - `master_email_attachment.doc_content_id` tanpa FK karena PK tujuan bertipe uuid.
+  - `master_document` punya kolom tambahan modul dokumen (`status`, `page_count`, `revision`,
+    7 kolom header/footer, `read_only`, …) + kolom ERD `folder_id`, `activity_id`, `owner`.
+  - `master_competency.group_competency_id` dan `master_simulation.{group_simulation_id,
+    level_id, status}` adalah tambahan lama yang tidak ada di ERD.
+  - Kolom dari data sample yang tidak ada di ERD: `master_actor.actor_division`,
+    `master_scenario_activity.trigger_timer`, `master_folder.{level_id,design_id,sort}`
+    (semua nullable; `master_folder.assessment_design_id` tetap dipertahankan).
+
+### 2b. Data sample (`sample data trial/`)
+
+Sudah diimpor ke DB dev (one-off, idempotent via `INSERT ... ON DUPLICATE KEY UPDATE`).
+14 file JSON (format `{ "select ...": [ ... ] }`) → tabel:
+
+| File | Tabel | Baris |
+|---|---|---|
+| reff_activity_type.json | ref_activity_type | 8 |
+| master_simulation.json | master_simulation | 9 |
+| master_folder.json | master_folder | 2 |
+| master_actor.json | master_actor | 51 |
+| master_activity.json | master_activity | 210 |
+| master_document.json | master_document | 24 |
+| master_document_content.json | master_document_content | 36 |
+| master_scenario_activity.json | master_scenario_activity | 480 (4 dilewati) |
+| master_chat.json | master_chat | 63 |
+| master_email.json | master_email | 79 |
+| master_email_attachment.json | master_email_attachment | 10 |
+| master_assessment_design.json | master_assessment_design | 2 |
+| master_assessment_design_detail_competency.json | ...detail_competency | 4 (6 dilewati) |
+| master_assessment_design_detail_simulation.json | ...detail_simulation | 9 |
+
+Aturan impor yang dipakai:
+- `design_id` sample `ambj-01` dipetakan ke `ambj-001` (design "Amboja" yang sudah ada).
+- Baris dengan parent wajib hilang **dilewati**: 4 scenario (`PLATFORM-35/39/43/47`, activity `*-FU`)
+  dan 6 detail competency (competency `COMP_DDI_EC/CP/DE/PS/TS` tidak ada di DB/sample).
+- FK opsional yang parent-nya tidak ada diisi `NULL`: `prompt_id` (semua baris; master_prompt
+  kosong), `triggered_activity_id` (4 baris), `master_document.activity_id` yang menunjuk
+  `folder-B` (1 dokumen).
+- `master_document`: `read_only='document'` → `status=FINAL`, `page_count=0`; `read_only IS NULL`
+  → `status=DRAFT`, `page_count` = jumlah baris konten aktif. `design_background` dibiarkan apa adanya
+  (tidak tampil di modul documents/upload-documents).
+- `master_document_content`: `doc_content_id -> document_content_id`, `document_content -> content_html`,
+  `document_content_md` disimpan di kolom baru.
+- Baris detail sim diisi `sequence` 1..n per design (sample tidak punya kolom ini).
+- Baris dengan PK sama di-upsert (data sample menang), data lain di DB tidak dihapus.
 
 ## 3. Menjalankan (Windows PowerShell)
 
