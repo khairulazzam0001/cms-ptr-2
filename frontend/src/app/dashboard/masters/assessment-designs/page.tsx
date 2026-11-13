@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Paged, api } from '@/lib/api';
+import { Paged, api, apiErrorMessage } from '@/lib/api';
 
 type Row = {
   assessment_design_id: string;
@@ -23,6 +23,7 @@ export default function AssessmentDesignListPage() {
   const [designs, setDesigns] = useState<any[]>([]);
   const [form, setForm] = useState({ assessment_design_id: '', assessment_design_name: '', level_id: '', design_id: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
 
   async function load(p = page, s = search) {
     const res = await api.get('/assessment-designs', { params: { search: s, page: p, limit: 10 } });
@@ -58,6 +59,46 @@ export default function AssessmentDesignListPage() {
     load();
   }
 
+  async function copyDesign(id: string) {
+    if (
+      !confirm(
+        `Copy assessment design ${id} beserta seluruh data terkait?\n\n` +
+          'Design, detail competency/simulation, actor, folder, activity, scenario, chat, email, dan dokumen akan digandakan dengan ID baru.',
+      )
+    )
+      return;
+    setCopyingId(id);
+    try {
+      const res = await api.post(`/assessment-designs/${id}/copy`);
+      const d = res.data as {
+        assessment_design_id: string;
+        assessment_design_name: string;
+        design_id: string | null;
+        counts: Record<string, number>;
+      };
+      const c = d.counts ?? {};
+      alert(
+        `Copy selesai.\n\n` +
+          `Assessment Design : ${d.assessment_design_id}\n` +
+          `Nama              : ${d.assessment_design_name}\n` +
+          `Design            : ${d.design_id ?? '-'}\n\n` +
+          `Activity   : ${c.master_activity ?? 0}\n` +
+          `Scenario   : ${c.master_scenario_activity ?? 0}\n` +
+          `Chat       : ${c.master_chat ?? 0}\n` +
+          `Email      : ${c.master_email ?? 0} (+${c.master_email_attachment ?? 0} attachment)\n` +
+          `Dokumen    : ${c.master_document ?? 0} (${c.master_document_content ?? 0} halaman)\n` +
+          `Actor      : ${c.master_actor ?? 0}\n` +
+          `Folder     : ${c.master_folder ?? 0}`,
+      );
+      setPage(1);
+      await load(1, search);
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Gagal copy assessment design'));
+    } finally {
+      setCopyingId(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -90,6 +131,9 @@ export default function AssessmentDesignListPage() {
                   <div className="flex flex-wrap gap-1">
                     <Link className="btn-light" href={`/dashboard/masters/assessment-designs/${r.assessment_design_id}/competencies`}>View Competency</Link>
                     <Link className="btn-light" href={`/dashboard/masters/assessment-designs/${r.assessment_design_id}/simulations`}>View Simulation</Link>
+                    <button className="btn-light" onClick={() => copyDesign(r.assessment_design_id)} disabled={copyingId !== null}>
+                      {copyingId === r.assessment_design_id ? 'Copying...' : 'Copy'}
+                    </button>
                     <button className="btn-light" onClick={() => { setEditingId(r.assessment_design_id); setForm({ assessment_design_id: r.assessment_design_id, assessment_design_name: r.assessment_design_name, level_id: r.level_id ?? '', design_id: r.design_id ?? '' }); setShowForm(true); }}>Edit</button>
                     <button className="btn-light" onClick={() => remove(r.assessment_design_id)}>Delete</button>
                   </div>
