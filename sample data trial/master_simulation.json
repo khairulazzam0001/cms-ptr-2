@@ -1,0 +1,111 @@
+{
+"select * from master_simulation ms": [
+	{
+		"simulation_id" : "bottleneck",
+		"simulation_name" : "Bottleneck pada supply chain FP",
+		"simulation_desc" : "Bottleneck pada supply chain FP",
+		"duration" : 30,
+		"channel_name" : "Diskusi Supply Chain & Distribution",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "coaching",
+		"simulation_name" : "Coaching bawahan tentang kurang performance karena rigid",
+		"simulation_desc" : "Coaching bawahan tentang kurang performance karena rigid",
+		"duration" : 30,
+		"channel_name" : "Coaching",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "csr",
+		"simulation_name" : "Project CSR",
+		"simulation_desc" : "Project CSR",
+		"duration" : 30,
+		"channel_name" : "CSR",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "peluang",
+		"simulation_name" : "Peluang pengembangan Waste Management",
+		"simulation_desc" : "Peluang pengembangan Waste Management",
+		"duration" : 30,
+		"channel_name" : "Waste Management",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "platform",
+		"simulation_name" : "Platform - Utilisasi tidak optimal dalam penggunaan platform",
+		"simulation_desc" : "Supply Chain & Distribution Discussion",
+		"duration" : 30,
+		"channel_name" : "Day-to-Day AmbojaSync",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "probono-A",
+		"simulation_name" : "Probono A",
+		"simulation_desc" : "Probono - A",
+		"duration" : 30,
+		"channel_name" : "Probono-A",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "probono-B",
+		"simulation_name" : "Probono B",
+		"simulation_desc" : "Probono - B",
+		"duration" : 30,
+		"channel_name" : "Probono-B",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "qenamaroko",
+		"simulation_name" : "Projek Qenamaroko",
+		"simulation_desc" : "Projek Qenamaroko",
+		"duration" : 30,
+		"channel_name" : "Projek Qenamaroko",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"simulation_id" : "swot",
+		"simulation_name" : "SWOT",
+		"simulation_desc" : "Strengths, Weaknesses, Opportunities, and Threats",
+		"duration" : 30,
+		"channel_name" : "Inisiatif Marketing",
+		"created_by" : "system",
+		"created_date" : "2025-07-04T03:08:08.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-04T03:08:08.000Z",
+		"is_deleted" : 0
+	}
+]}

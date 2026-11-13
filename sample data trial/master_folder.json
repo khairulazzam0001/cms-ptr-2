@@ -1,0 +1,29 @@
+{
+"select * from master_folder mf where mf.is_deleted = 0": [
+	{
+		"folder_id" : "info-umum-perusahaan",
+		"folder_name" : "Dokumen Amboja dan Earth Operation",
+		"level_id" : "3",
+		"design_id" : "ambj-01",
+		"owner" : "participant-001-ambj-01-platform",
+		"sort" : 0,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"folder_id" : "template",
+		"folder_name" : "Template Dokumen Kerja",
+		"level_id" : "3",
+		"design_id" : "ambj-01",
+		"owner" : "participant-001-ambj-01-platform",
+		"sort" : 2,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	}
+]}

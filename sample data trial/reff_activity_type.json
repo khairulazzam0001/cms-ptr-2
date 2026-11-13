@@ -1,0 +1,91 @@
+{
+"select * from ref_activity_type rat": [
+	{
+		"ref_activity_type_id" : "calender-days",
+		"ref_activity_type_name" : "Calender Days",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"ref_activity_type_id" : "call",
+		"ref_activity_type_name" : "Call",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"ref_activity_type_id" : "chat",
+		"ref_activity_type_name" : "Chat",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"ref_activity_type_id" : "document",
+		"ref_activity_type_name" : "Document",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"ref_activity_type_id" : "email",
+		"ref_activity_type_name" : "Email",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"ref_activity_type_id" : "home",
+		"ref_activity_type_name" : "Home",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"ref_activity_type_id" : "phone",
+		"ref_activity_type_name" : "Phone",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"ref_activity_type_id" : "user-group",
+		"ref_activity_type_name" : "User Group",
+		"ref_activity_type_desc" : null,
+		"icon_name" : null,
+		"created_by" : null,
+		"created_date" : null,
+		"modified_by" : null,
+		"modified_date" : null,
+		"is_deleted" : 0
+	}
+]}
