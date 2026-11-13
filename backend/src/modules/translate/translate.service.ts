@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+// Model lama (gemini-2.0-flash) sudah dihentikan Google -> 404.
+// Ganti via GEMINI_MODEL di .env bila model ini juga dipensiunkan.
+const DEFAULT_MODEL = 'gemini-3.6-flash';
+// Dicoba berurutan bila model utama 404 (pensiun) / 429 (kuota) / 503 (sibuk).
+const FALLBACK_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 // Batas per request agar prompt tidak melebihi konteks model
 const MAX_CHARS_PER_REQUEST = 6000;
@@ -162,37 +166,52 @@ export class TranslateService {
     }
     const model = (this.config.get<string>('GEMINI_MODEL') || DEFAULT_MODEL).trim();
     const baseUrl = (this.config.get<string>('GEMINI_BASE_URL') || DEFAULT_BASE_URL).replace(/\/+$/, '');
-    const url = `${baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0, topP: 0.95, maxOutputTokens: 8192 },
-        }),
-      });
-    } catch (e) {
-      this.logger.error(`Gagal menghubungi Gemini: ${(e as Error).message}`);
-      throw new BadGatewayException('Gagal menghubungi layanan terjemahan');
+    // Model yang dipensiunkan (404) atau sedang sibuk (429/503) dicoba ke model cadangan.
+    const models = [model, ...FALLBACK_MODELS].filter((m, i, arr) => m && arr.indexOf(m) === i);
+    let lastError = '';
+
+    for (const current of models) {
+      const url = `${baseUrl}/models/${encodeURIComponent(current)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0, topP: 0.95, maxOutputTokens: 8192 },
+          }),
+        });
+      } catch (e) {
+        this.logger.error(`Gagal menghubungi Gemini (${current}): ${(e as Error).message}`);
+        lastError = 'jaringan';
+        continue;
+      }
+
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        this.logger.warn(`Gemini ${res.status} (${current}): ${detail.slice(0, 300)}`);
+        lastError = String(res.status);
+        // 400/401/403 = masalah API key/permintaan -> tidak akan membaik di model lain
+        if (res.status === 400 || res.status === 401 || res.status === 403) break;
+        continue;
+      }
+
+      const data = (await res.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const text = (data.candidates?.[0]?.content?.parts ?? [])
+        .map((p) => p.text ?? '')
+        .join('')
+        .trim();
+      if (!text) {
+        lastError = 'kosong';
+        continue;
+      }
+      return text;
     }
 
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '');
-      this.logger.error(`Gemini ${res.status}: ${detail.slice(0, 500)}`);
-      throw new BadGatewayException(`Layanan terjemahan gagal (${res.status})`);
-    }
-
-    const data = (await res.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
-    };
-    const text = (data.candidates?.[0]?.content?.parts ?? [])
-      .map((p) => p.text ?? '')
-      .join('')
-      .trim();
-    if (!text) throw new BadGatewayException('Layanan terjemahan mengembalikan hasil kosong');
-    return text;
+    throw new BadGatewayException(`Layanan terjemahan gagal (${lastError || 'tidak diketahui'})`);
   }
 }

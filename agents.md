@@ -88,6 +88,8 @@ cms-ptr-2/
                               { subject?, html?, target_language, source_language? }.
                               HTML: hanya text node yang diterjemahkan (tag/atribut utuh);
                               tag code/pre/style/script/svg dilewati.
+                              Model default gemini-3.6-flash + fallback (3.5-flash, 2.5-flash)
+                              saat 404/429/503; ganti via GEMINI_MODEL.
     src/common/decorators/current-user.decorator.ts <- @CurrentUsername() dari JWT (kolom audit)
     src/modules/masters/example-master/ <- TEMPLATE modul master generik (jangan hapus)
     src/database/seed.ts   <- seed admin + data contoh (Level 3, DSG-ALL, 3 competency,
