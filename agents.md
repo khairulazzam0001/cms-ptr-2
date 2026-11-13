@@ -82,12 +82,18 @@ cms-ptr-2/
                               dto.ts, sanitize.ts (allowlist HTML), documents.service.ts
                               (PUT content transaksional + revision), controller, *.spec.ts
     src/modules/upload-documents/ <- Upload Document: html-file.ts (validasi file + peringatan),
-                              service/controller (multer memory storage, maks 2 MB), *.spec.ts
+                              service/controller (multer memory storage, maks 2 MB),
+                              POST /upload-documents/:id/translate (timpa isi, revision+1), *.spec.ts
+    src/modules/translate/ <- Terjemahan via Google Gemini (GEMINI_API_KEY): POST /translate
+                              { subject?, html?, target_language, source_language? }.
+                              HTML: hanya text node yang diterjemahkan (tag/atribut utuh);
+                              tag code/pre/style/script/svg dilewati.
     src/common/decorators/current-user.decorator.ts <- @CurrentUsername() dari JWT (kolom audit)
     src/modules/masters/example-master/ <- TEMPLATE modul master generik (jangan hapus)
     src/database/seed.ts   <- seed admin + data contoh (Level 3, DSG-ALL, 3 competency,
                               4 simulation, design 10001). Jalan via `npm run seed:admin`.
                               Catatan: setiap run me-reset password admin ke ADMIN_PASSWORD.
+    src/database/seed-languages.ts <- seed 10 bahasa master_language (`npm run seed:languages`)
     .env.example           <- template env (tanpa secret). .env aktif TIDAK di-commit.
   frontend/                <- Next.js admin, port 3000
     src/lib/api.ts         <- axios instance (baseURL NEXT_PUBLIC_API_URL, inject
@@ -110,12 +116,13 @@ cms-ptr-2/
       emails/page.tsx              <- list + paging + filter activity (Add/Edit pindah ke halaman)
       emails/new/page.tsx          <- halaman tambah email (form + editor TipTap + lampiran)
       emails/[id]/page.tsx         <- halaman edit email + list lampiran (tambah/hapus/buka dokumen)
+                                      + terjemahan Subject/Content (dropdown master_language)
       actors/page.tsx              <- CRUD + paging + filter design/level + superior (self-ref)
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
       example-masters/page.tsx <- template UI master generik
       documents/page.tsx           <- list dokumen (search, filter status/aktif, paging, aksi)
-      documents/[id]/edit/page.tsx <- editor A4 (autosave, status, preview)
-      upload-documents/page.tsx    <- list + modal upload/ganti file/edit, preview, unduh, hapus
+      documents/[id]/edit/page.tsx <- editor A4 (autosave, status, preview, Translate isi dokumen)
+      upload-documents/page.tsx    <- list + modal upload/ganti file/edit/Translate, preview, unduh, hapus
     src/lib/document/      <- logika murni Document Generator (diuji Vitest):
                               constants.ts (geometri A4), paginator.ts, measure.ts (ukur DOM),
                               html.ts (split/merge halaman), paste.ts (bersihkan Word/GDocs),
@@ -125,6 +132,7 @@ cms-ptr-2/
                                 PageHeaderFooter (editor+preview), HeaderFooterPanel
     src/components/emails/EmailEditorForm.tsx <- form halaman email (dipakai new & [id])
     src/lib/uploadDocument.ts  <- tipe, validasi klien, buildPreviewSrcdoc (CSP + buang meta refresh/base)
+    src/lib/useLanguages.ts    <- hook daftar bahasa target dari /languages/options/all
     src/components/upload-document/HtmlPreview.tsx <- preview di <iframe sandbox=""> (tanpa izin)
     .env.example           <- NEXT_PUBLIC_API_URL=http://localhost:3001/api
                              (aktif sebagai frontend/.env.local)
@@ -140,12 +148,14 @@ Sumber: https://dbdiagram.io/d/assessment-ano-6ad87bc7f8963ca19c6f79e6
   `master_assessment_design_detail_simulation` (modul `assessment`);
   `master_document`, `master_document_content` (modul `documents`).
 - **Dibuat oleh `assessment-data` — sudah ada API + UI (CRUD lengkap)**:
-  `master_actor`, `master_activity`, `master_scenario_activity`, `master_chat`, `master_email`
+  `master_actor`, `master_activity`, `master_scenario_activity`, `master_chat`, `master_email`,
+  `master_email_attachment` (via `/emails/:id/attachments`), `master_language`
+  (dropdown `/languages/options/all`, seed `npm run seed:languages`).
   (halaman: `/dashboard/masters/actors|activities|scenario-activities|chats|emails`).
 - **Dibuat oleh `assessment-data` — entity saja (belum ada API/UI)**: `master_key_action`,
   `ref_group_rating`, `ref_mapping_group_rating`, `trans_batch_project`, `trans_participant`,
   `trans_participant_assessor`, `ref_activity_type`,
-  `master_prompt`, `master_call`, `master_folder`, `master_email_attachment`.
+  `master_prompt`, `master_call`, `master_folder`.
   Dropdown form memakai `/actors|prompts|activity-types/options/all` (kosong sampai di-seed).
 - Tabel dibuat otomatis oleh `synchronize: true` saat backend start (DEV). 45 foreign key
   mengikuti garis `Ref:` di ERD (termasuk `master_actor.superior` self-reference dan
@@ -243,7 +253,8 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
 - **TypeORM `synchronize: true` hanya untuk DEV.** Production: matikan + pakai migration.
   Tambah kolom baru di entity -> tabel teralter otomatis saat restart (dev).
 - Env penting: `PORT`, `FRONTEND_URL` (CORS), `DB_*`, `JWT_SECRET`, `JWT_EXPIRES`,
-  `ADMIN_USERNAME/PASSWORD` (seed), `UPLOAD_DIR`, `MAX_FILE_MB`, `GOOGLE_*`, `SHEETS_*`, `DRIVE_*`.
+  `ADMIN_USERNAME/PASSWORD` (seed), `UPLOAD_DIR`, `MAX_FILE_MB`, `GOOGLE_*`, `SHEETS_*`, `DRIVE_*`,
+  `GEMINI_API_KEY`/`GEMINI_MODEL` (terjemahan; tanpa key endpoint `POST /translate` -> 503).
   Tambah env baru -> update `backend/.env.example` juga.
 
 ## 5. Konvensi frontend (WAJIB diikuti)

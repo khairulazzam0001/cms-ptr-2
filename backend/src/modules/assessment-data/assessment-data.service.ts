@@ -28,6 +28,7 @@ import {
   Chat,
   Email,
   EmailAttachment,
+  Language,
   Prompt,
   ScenarioActivity,
 } from './entities';
@@ -72,6 +73,7 @@ export class AssessmentDataService {
     @InjectRepository(Actor) private actors: Repository<Actor>,
     @InjectRepository(Prompt) private prompts: Repository<Prompt>,
     @InjectRepository(ActivityType) private activityTypes: Repository<ActivityType>,
+    @InjectRepository(Language) private languages: Repository<Language>,
   ) {}
 
   // ================= MASTER ACTIVITY =================
@@ -347,7 +349,7 @@ export class AssessmentDataService {
       .leftJoin(
         MasterDocument,
         'd',
-        'd.document_id = c.document_id AND d.is_deleted = false AND d.read_only IS NULL',
+        'd.document_id = c.document_id AND d.is_deleted = false',
       )
       .select('a.attachment_id', 'attachment_id')
       .addSelect('a.email_id', 'email_id')
@@ -357,6 +359,7 @@ export class AssessmentDataService {
       .addSelect('c.page', 'page')
       .addSelect('d.document_name', 'document_name')
       .addSelect('d.status', 'document_status')
+      .addSelect('d.read_only', 'document_read_only')
       .where('a.email_id = :emailId', { emailId })
       .andWhere('a.is_deleted = false')
       .orderBy('a.created_date', 'ASC')
@@ -506,6 +509,14 @@ export class AssessmentDataService {
     return this.activityTypes.find({
       where: { is_deleted: false },
       order: { ref_activity_type_name: 'ASC' },
+    });
+  }
+
+  // Bahasa target untuk fitur terjemahan (master_language)
+  languageOptions() {
+    return this.languages.find({
+      where: { is_deleted: false, is_active: true },
+      order: { language_name: 'ASC' },
     });
   }
 }

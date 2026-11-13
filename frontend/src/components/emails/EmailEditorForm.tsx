@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Paged, api, apiErrorMessage } from '@/lib/api';
+import { useLanguages } from '@/lib/useLanguages';
 import DocumentEditor, { DocumentEditorHandle } from '@/components/document/DocumentEditor';
 import { EMPTY_HEADER_FOOTER } from '@/lib/document/headerFooter';
 import { mergePages } from '@/lib/document/html';
@@ -27,6 +28,7 @@ type AttachmentRow = {
   document_id?: string | null;
   document_name?: string | null;
   document_status?: string | null;
+  document_read_only?: string | null;
   page?: number | null;
   created_date?: string;
 };
@@ -71,6 +73,10 @@ export default function EmailEditorForm({ emailId }: { emailId?: string }) {
   const [pickedDoc, setPickedDoc] = useState('');
   const [attachError, setAttachError] = useState('');
   const [attachBusy, setAttachBusy] = useState(false);
+
+  const { languages } = useLanguages();
+  const [targetLang, setTargetLang] = useState('');
+  const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -176,6 +182,41 @@ export default function EmailEditorForm({ emailId }: { emailId?: string }) {
     }
   }
 
+  async function translateEmail() {
+    const lang = languages.find((l) => l.language_id === targetLang);
+    if (!lang) {
+      setError('Pilih bahasa target terlebih dahulu');
+      return;
+    }
+    const pages = editorRef.current?.getPages();
+    if (!pages) {
+      setError('Gagal mengambil konten email, coba lagi.');
+      return;
+    }
+    setTranslating(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await api.post<{ subject?: string; html?: string }>('/translate', {
+        subject: form.subject ?? '',
+        html: mergePages(pages),
+        target_language: lang.language_name,
+      });
+      if (res.data.subject !== undefined) {
+        setForm((f) => ({ ...f, subject: res.data.subject ?? '' }));
+      }
+      if (res.data.html !== undefined) {
+        setEmailContent(res.data.html);
+        setLoadSeq((n) => n + 1);
+      }
+      setMessage(`Diterjemahkan ke ${lang.language_name}. Klik Save untuk menyimpan.`);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Gagal menerjemahkan email'));
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   async function addAttachment() {
     if (!emailId) return;
     if (!pickedDoc) {
@@ -219,9 +260,27 @@ export default function EmailEditorForm({ emailId }: { emailId?: string }) {
           <Link className="btn-light" href="/dashboard/masters/emails">← Kembali</Link>
           <h1 className="text-2xl font-bold">{isNew ? 'Add Email' : `Edit Email: ${form.email_id}`}</h1>
         </div>
-        <button className="btn-dark" onClick={save} disabled={saving}>
-          {saving ? 'Menyimpan…' : 'Save'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="input !w-auto !py-2"
+            value={targetLang}
+            onChange={(e) => setTargetLang(e.target.value)}
+            aria-label="Bahasa target terjemahan"
+          >
+            <option value="">Bahasa target…</option>
+            {languages.map((l) => (
+              <option key={l.language_id} value={l.language_id}>
+                {l.language_name}{l.native_name ? ` (${l.native_name})` : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn-light" onClick={translateEmail} disabled={translating || !targetLang}>
+            {translating ? 'Menerjemahkan…' : 'Translate'}
+          </button>
+          <button className="btn-dark" onClick={save} disabled={saving}>
+            {saving ? 'Menyimpan…' : 'Save'}
+          </button>
+        </div>
       </div>
 
       {error && <div className="card text-sm text-red-600" role="alert">{error}</div>}
@@ -336,6 +395,9 @@ export default function EmailEditorForm({ emailId }: { emailId?: string }) {
                       <td className="font-mono text-xs">{a.attachment_id}</td>
                       <td>
                         {a.document_name ?? <span className="text-slate-500">Dokumen tidak ditemukan</span>}
+                        {a.document_read_only === 'document' && (
+                          <span className="ml-2 px-1.5 py-0.5 rounded bg-slate-200 text-xs font-semibold">READ-ONLY</span>
+                        )}
                         {a.document_id && <div className="text-xs text-slate-500 font-mono">{a.document_id}</div>}
                       </td>
                       <td>{a.page ?? '-'}</td>
@@ -345,10 +407,17 @@ export default function EmailEditorForm({ emailId }: { emailId?: string }) {
                           {a.document_id ? (
                             <Link
                               className="btn-light"
-                              href={{
-                                pathname: `/dashboard/masters/documents/${a.document_id}/edit`,
-                                query: { from: `/dashboard/masters/emails/${emailId}` },
-                              }}
+                              href={
+                                a.document_read_only === 'document'
+                                  ? {
+                                      pathname: '/dashboard/masters/upload-documents',
+                                      query: { preview: a.document_id },
+                                    }
+                                  : {
+                                      pathname: `/dashboard/masters/documents/${a.document_id}/edit`,
+                                      query: { from: `/dashboard/masters/emails/${emailId}` },
+                                    }
+                              }
                             >
                               Buka
                             </Link>

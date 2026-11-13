@@ -13,6 +13,7 @@ import { AssessmentDataModule } from './modules/assessment-data/assessment-data.
 import { SheetsModule } from './modules/sheets/sheets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { UploadDocumentsModule } from './modules/upload-documents/upload-documents.module';
+import { TranslateModule } from './modules/translate/translate.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { UploadDocumentsModule } from './modules/upload-documents/upload-documen
     SheetsModule,
     DocumentsModule,
     UploadDocumentsModule,
+    TranslateModule,
   ],
 })
 export class AppModule {}

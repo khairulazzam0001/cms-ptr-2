@@ -8,6 +8,7 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "seed:admin": "ts-node src/database/seed.ts",
+    "seed:languages": "ts-node src/database/seed-languages.ts",
     "typeorm": "typeorm-ts-node-commonjs",
     "test": "jest"
   },

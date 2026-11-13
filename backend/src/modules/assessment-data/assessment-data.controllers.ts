@@ -99,3 +99,11 @@ export class PromptsController {
   constructor(private svc: AssessmentDataService) {}
   @Get('options/all') options() { return this.svc.promptOptions(); }
 }
+
+// Daftar bahasa target terjemahan (master_language)
+@Controller('languages')
+export class LanguagesController {
+  constructor(private svc: AssessmentDataService) {}
+  @Get() list() { return this.svc.languageOptions(); }
+  @Get('options/all') options() { return this.svc.languageOptions(); }
+}

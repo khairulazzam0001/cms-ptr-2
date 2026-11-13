@@ -16,7 +16,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { CurrentUsername } from '../../common/decorators/current-user.decorator';
-import { CreateUploadDocumentDto, UpdateUploadDocumentDto, UploadDocumentQueryDto } from './dto';
+import { CreateUploadDocumentDto, TranslateUploadDocumentDto, UpdateUploadDocumentDto, UploadDocumentQueryDto } from './dto';
 import { MAX_HTML_BYTES } from './html-file';
 import { UploadDocumentsService } from './upload-documents.service';
 
@@ -60,6 +60,16 @@ export class UploadDocumentsController {
 
   @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateUploadDocumentDto, @CurrentUsername() user: string) {
     return this.svc.update(id, dto, user);
+  }
+
+  // Terjemahkan isi dokumen read-only (timpa content_html, revision + 1)
+  @Post(':id/translate')
+  translate(
+    @Param('id') id: string,
+    @Body() dto: TranslateUploadDocumentDto,
+    @CurrentUsername() user: string,
+  ) {
+    return this.svc.translate(id, dto.target_language, dto.source_language, user);
   }
   @Delete(':id') remove(@Param('id') id: string, @CurrentUsername() user: string) { return this.svc.remove(id, user); }
 }

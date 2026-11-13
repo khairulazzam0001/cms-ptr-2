@@ -1,10 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, EntityManager, In, Repository } from 'typeorm';
 import { paginateResponse } from '../../common/dto/pagination.dto';
 import { MasterDocument, MasterDocumentContent, READ_ONLY_DOCUMENT } from '../documents/document.entity';
+import { TranslateService } from '../translate/translate.service';
 import { CreateUploadDocumentDto, UpdateUploadDocumentDto, UploadDocumentQueryDto } from './dto';
-import { UploadedHtml, htmlWarnings, readHtmlFile } from './html-file';
+import { MAX_HTML_BYTES, UploadedHtml, htmlWarnings, readHtmlFile } from './html-file';
 
 // Dokumen HTML upload (PRD_Upload_Document.md): header di master_document dengan read_only = 'document',
 // isi utuh di master_document_content sebagai SATU baris page = 0.
@@ -21,6 +22,7 @@ export class UploadDocumentsService {
     @InjectRepository(MasterDocument) private docs: Repository<MasterDocument>,
     @InjectRepository(MasterDocumentContent) private contents: Repository<MasterDocumentContent>,
     @InjectDataSource() private dataSource: DataSource,
+    private translator: TranslateService,
   ) {}
 
   async list(q: UploadDocumentQueryDto) {
@@ -133,6 +135,39 @@ export class UploadDocumentsService {
     const doc = await this.findActive(id);
     Object.assign(doc, dto, { modified_by: username });
     return this.docs.save(doc);
+  }
+
+  // Terjemahkan seluruh isi dokumen (hanya text node HTML) lalu timpa content_html.
+  // Dokumen tetap read-only; revision + 1 seperti ganti file.
+  async translate(
+    id: string,
+    targetLanguage: string,
+    sourceLanguage: string | undefined,
+    username: string,
+  ) {
+    const html = await this.readContent(id);
+    await this.findActive(id);
+
+    const translated = await this.translator.translateHtml(html, targetLanguage, sourceLanguage);
+    if (byteLength(translated) > MAX_HTML_BYTES) {
+      throw new BadRequestException(
+        `Hasil terjemahan melebihi batas ${Math.round(MAX_HTML_BYTES / 1024)} KB`,
+      );
+    }
+
+    const saved = await this.dataSource.transaction(async (m) => {
+      const doc = await this.lockActive(m, id);
+      await m.update(
+        MasterDocumentContent,
+        { document_id: id, page: CONTENT_PAGE },
+        { content_html: translated, modified_by: username, is_deleted: false },
+      );
+      doc.revision += 1;
+      doc.modified_by = username;
+      return m.save(doc);
+    });
+
+    return { ...saved, size_bytes: byteLength(translated) };
   }
 
   async remove(id: string, username: string) {

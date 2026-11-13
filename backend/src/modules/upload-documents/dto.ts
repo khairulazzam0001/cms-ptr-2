@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { toBoolean } from '../documents/dto';
@@ -9,4 +9,9 @@ export { CreateDocumentDto as CreateUploadDocumentDto, UpdateDocumentDto as Upda
 // Filter wajib dideklarasikan; ValidationPipe(whitelist) membuang query param yang tidak terdaftar.
 export class UploadDocumentQueryDto extends PaginationDto {
   @IsOptional() @Transform(toBoolean) @IsBoolean() is_active?: boolean;
+}
+
+export class TranslateUploadDocumentDto {
+  @IsString() target_language: string;
+  @IsOptional() @IsString() source_language?: string;
 }

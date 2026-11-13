@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Paged, api, apiErrorMessage } from '@/lib/api';
 import { DOCUMENT_ID_PATTERN } from '@/lib/document/types';
 import { UploadDocument, UploadResult, checkHtmlFile, formatBytes } from '@/lib/uploadDocument';
+import { useLanguages } from '@/lib/useLanguages';
 import HtmlPreview from '@/components/upload-document/HtmlPreview';
 
 // Upload Document (PRD_Upload_Document.md): dokumen HTML read-only, disimpan di master_document
@@ -30,6 +31,17 @@ export default function UploadDocumentListPage() {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<{ text: string; warnings: string[] } | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const { languages } = useLanguages();
+  const [translateDoc, setTranslateDoc] = useState<UploadDocument | null>(null);
+  const [targetLang, setTargetLang] = useState('');
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState('');
+
+  // Dibuka dari halaman lain (mis. lampiran email) lewat ?preview=<document_id>
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('preview');
+    if (id) setPreviewId(id);
+  }, []);
 
   // debounce 400 ms hanya untuk search; filter & paging langsung
   useEffect(() => {
@@ -146,6 +158,30 @@ export default function UploadDocumentListPage() {
     }
   }
 
+  async function runTranslate() {
+    if (!translateDoc || !targetLang) return;
+    const lang = languages.find((l) => l.language_id === targetLang);
+    if (!lang) return;
+    setTranslating(true);
+    setTranslateError('');
+    try {
+      const res = await api.post<{ document_id: string; size_bytes: number }>(
+        `/upload-documents/${encodeURIComponent(translateDoc.document_id)}/translate`,
+        { target_language: lang.language_name },
+      );
+      setNotice({
+        text: `Dokumen ${res.data.document_id} diterjemahkan ke ${lang.language_name} (${formatBytes(res.data.size_bytes)})`,
+        warnings: [],
+      });
+      setTranslateDoc(null);
+      load();
+    } catch (err) {
+      setTranslateError(apiErrorMessage(err, 'Gagal menerjemahkan dokumen'));
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   const isFiltered = !!(debouncedSearch || active);
   const title = modal?.kind === 'upload' ? 'Upload Dokumen HTML' : modal?.kind === 'replace' ? `Ganti file ${modal.doc.document_id}` : modal ? `Edit ${modal.doc.document_id}` : '';
 
@@ -203,6 +239,7 @@ export default function UploadDocumentListPage() {
                     <button className="btn-light" onClick={() => download(r)}>Unduh</button>
                     <button className="btn-light" onClick={() => open({ kind: 'replace', doc: r })}>Ganti file</button>
                     <button className="btn-light" onClick={() => open({ kind: 'edit', doc: r })}>Edit</button>
+                    <button className="btn-light" onClick={() => { setTranslateDoc(r); setTargetLang(''); setTranslateError(''); }}>Translate</button>
                     <button className="btn-light" onClick={() => remove(r)}>Hapus</button>
                   </div>
                 </td>
@@ -273,6 +310,39 @@ export default function UploadDocumentListPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {translateDoc && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+          <div className="card w-full max-w-md space-y-3">
+            <h2 className="font-bold">Terjemahkan {translateDoc.document_id}</h2>
+            <p className="text-sm text-amber-700">
+              Isi dokumen akan ditimpa hasil terjemahan (revision bertambah). File asli tidak disimpan.
+            </p>
+            <label className="block text-sm">Bahasa target
+              <select
+                className="input"
+                value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}
+                autoFocus
+                aria-label="Bahasa target terjemahan"
+              >
+                <option value="">-- pilih bahasa --</option>
+                {languages.map((l) => (
+                  <option key={l.language_id} value={l.language_id}>
+                    {l.language_name}{l.native_name ? ` (${l.native_name})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {translateError && <p className="text-sm text-red-700" role="alert">{translateError}</p>}
+            <div className="flex gap-2 justify-end">
+              <button type="button" className="btn-light" onClick={() => setTranslateDoc(null)} disabled={translating}>Batal</button>
+              <button type="button" className="btn-dark" onClick={runTranslate} disabled={translating || !targetLang}>
+                {translating ? 'Menerjemahkan…' : 'Terjemahkan'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

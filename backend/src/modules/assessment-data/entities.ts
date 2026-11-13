@@ -579,3 +579,21 @@ export class EmailAttachment extends AuditColumns {
   @Column({ length: 50, nullable: true })
   doc_content_id?: string;
 }
+
+// ============ master_language ============
+// Daftar bahasa target untuk fitur terjemahan (email, dokumen editor, dokumen upload).
+@Entity('master_language')
+export class Language extends AuditColumns {
+  // kode ISO sederhana: id, en, ja, ...
+  @PrimaryColumn({ length: 10 })
+  language_id: string;
+
+  @Column({ length: 100 })
+  language_name: string;
+
+  @Column({ length: 100, nullable: true })
+  native_name?: string;
+
+  @Column({ default: true })
+  is_active: boolean;
+}
