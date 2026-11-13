@@ -61,8 +61,11 @@ cms-ptr-2/
       dto.ts               <- Query/Create/Update DTO (filter WAJIB di sini, §4)
       assessment-data.service.ts <- CRUD 5 master (actor/activity/scenario-activity/chat/email):
                               soft delete, revive id yang sudah dihapus, clean() -> '' jadi NULL
-                              untuk kolom FK, applySearch() dukung kolom ber-alias
+                              untuk kolom FK, applySearch() dukung kolom ber-alias;
+                              lampiran email: list/attach/detach + resolve doc_content_id -> dokumen
       controllers.ts       <- /activities, /scenario-activities, /chats, /emails, /actors
+                              (email: GET /emails/:id, GET|POST /emails/:id/attachments,
+                              DELETE /emails/:id/attachments/:attachmentId)
                               + options: /activity-types/options/all, /actors/options/all,
                               /prompts/options/all
       assessment-data.module.ts <- TypeOrmModule.forFeature(16 entity) + controllers/providers
@@ -104,7 +107,9 @@ cms-ptr-2/
       activities/page.tsx          <- CRUD + paging + filter Activity type/level/design/simulation
       scenario-activities/page.tsx <- CRUD + paging + filter activity (form terpanjang)
       chats/page.tsx               <- CRUD + paging + filter activity
-      emails/page.tsx              <- CRUD + paging + filter activity
+      emails/page.tsx              <- list + paging + filter activity (Add/Edit pindah ke halaman)
+      emails/new/page.tsx          <- halaman tambah email (form + editor TipTap + lampiran)
+      emails/[id]/page.tsx         <- halaman edit email + list lampiran (tambah/hapus/buka dokumen)
       actors/page.tsx              <- CRUD + paging + filter design/level + superior (self-ref)
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
       example-masters/page.tsx <- template UI master generik
@@ -118,6 +123,7 @@ cms-ptr-2/
     src/components/document/ <- DocumentEditor, Toolbar, extensions.ts (PageBreak, Indent,
                                 DocTable), pagination.ts (dekorasi batas halaman), DocumentPreview,
                                 PageHeaderFooter (editor+preview), HeaderFooterPanel
+    src/components/emails/EmailEditorForm.tsx <- form halaman email (dipakai new & [id])
     src/lib/uploadDocument.ts  <- tipe, validasi klien, buildPreviewSrcdoc (CSP + buang meta refresh/base)
     src/components/upload-document/HtmlPreview.tsx <- preview di <iframe sandbox=""> (tanpa izin)
     .env.example           <- NEXT_PUBLIC_API_URL=http://localhost:3001/api

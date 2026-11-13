@@ -124,6 +124,13 @@ export class UpdateEmailDto {
   @IsOptional() @IsString() content?: string;
 }
 
+// Lampiran email: cukup pilih dokumen (doc_content_id di-resolve ke halaman pertama).
+export class CreateEmailAttachmentDto {
+  @IsOptional() @IsString() @MaxLength(50) attachment_id?: string;
+  @IsOptional() @IsString() document_id?: string;
+  @IsOptional() @IsString() doc_content_id?: string;
+}
+
 // ================= MASTER ACTOR =================
 export class ActorQueryDto extends PaginationDto {
   @IsOptional() @IsString() design_id?: string;

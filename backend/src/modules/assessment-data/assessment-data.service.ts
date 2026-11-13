@@ -1,7 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, IsNull, Repository } from 'typeorm';
 import { paginateResponse } from '../../common/dto/pagination.dto';
+import { MasterDocument, MasterDocumentContent } from '../documents/document.entity';
 import {
   ActivityQueryDto,
   ActorQueryDto,
@@ -9,6 +10,7 @@ import {
   CreateActivityDto,
   CreateActorDto,
   CreateChatDto,
+  CreateEmailAttachmentDto,
   CreateEmailDto,
   CreateScenarioActivityDto,
   EmailQueryDto,
@@ -25,6 +27,7 @@ import {
   Actor,
   Chat,
   Email,
+  EmailAttachment,
   Prompt,
   ScenarioActivity,
 } from './entities';
@@ -63,6 +66,9 @@ export class AssessmentDataService {
     @InjectRepository(ScenarioActivity) private scenarios: Repository<ScenarioActivity>,
     @InjectRepository(Chat) private chats: Repository<Chat>,
     @InjectRepository(Email) private emails: Repository<Email>,
+    @InjectRepository(EmailAttachment) private attachments: Repository<EmailAttachment>,
+    @InjectRepository(MasterDocumentContent) private contents: Repository<MasterDocumentContent>,
+    @InjectRepository(MasterDocument) private documents: Repository<MasterDocument>,
     @InjectRepository(Actor) private actors: Repository<Actor>,
     @InjectRepository(Prompt) private prompts: Repository<Prompt>,
     @InjectRepository(ActivityType) private activityTypes: Repository<ActivityType>,
@@ -323,6 +329,104 @@ export class AssessmentDataService {
   async emailRemove(id: string) {
     const r = await this.emails.update({ email_id: id, is_deleted: false }, { is_deleted: true } as any);
     if (!r.affected) throw new NotFoundException(`Email ${id} tidak ditemukan`);
+    return { ok: true };
+  }
+
+  // ================= EMAIL ATTACHMENT =================
+  // Baris attachment hanya menyimpan doc_content_id (uuid baris master_document_content),
+  // jadi dokumen (document_id/document_name) di-resolve lewat join untuk kebutuhan UI.
+  async emailAttachments(emailId: string) {
+    await this.emailOne(emailId);
+    return this.attachments
+      .createQueryBuilder('a')
+      .leftJoin(
+        MasterDocumentContent,
+        'c',
+        'c.document_content_id = a.doc_content_id AND c.is_deleted = false',
+      )
+      .leftJoin(
+        MasterDocument,
+        'd',
+        'd.document_id = c.document_id AND d.is_deleted = false AND d.read_only IS NULL',
+      )
+      .select('a.attachment_id', 'attachment_id')
+      .addSelect('a.email_id', 'email_id')
+      .addSelect('a.doc_content_id', 'doc_content_id')
+      .addSelect('a.created_date', 'created_date')
+      .addSelect('c.document_id', 'document_id')
+      .addSelect('c.page', 'page')
+      .addSelect('d.document_name', 'document_name')
+      .addSelect('d.status', 'document_status')
+      .where('a.email_id = :emailId', { emailId })
+      .andWhere('a.is_deleted = false')
+      .orderBy('a.created_date', 'ASC')
+      .getRawMany();
+  }
+
+  private async nextAttachmentId(emailId: string) {
+    const base = `ATT-${emailId}`.slice(0, 40);
+    for (let i = 1; i <= 999; i++) {
+      const candidate = `${base}-${i}`.slice(0, 50);
+      // cek termasuk baris soft-deleted: PK tidak boleh dipakai ulang
+      if (!(await this.attachments.exists({ where: { attachment_id: candidate } }))) return candidate;
+    }
+    throw new ConflictException('Gagal membuat attachment_id otomatis');
+  }
+
+  async emailAttachmentCreate(emailId: string, dto: CreateEmailAttachmentDto, username: string) {
+    await this.emailOne(emailId);
+
+    let contentId = dto.doc_content_id?.trim() || '';
+    if (!contentId) {
+      if (!dto.document_id) throw new BadRequestException('Pilih dokumen yang akan dilampirkan');
+      const doc = await this.documents.findOne({
+        where: { document_id: dto.document_id, is_deleted: false, read_only: IsNull() },
+      });
+      if (!doc) throw new NotFoundException('Dokumen tidak ditemukan');
+      const first = await this.contents.findOne({
+        where: { document_id: dto.document_id, is_deleted: false },
+        order: { page: 'ASC' },
+      });
+      if (!first) throw new BadRequestException('Dokumen belum memiliki konten');
+      contentId = first.document_content_id;
+    } else {
+      const content = await this.contents.findOne({
+        where: { document_content_id: contentId, is_deleted: false },
+      });
+      if (!content) throw new NotFoundException('Konten dokumen tidak ditemukan');
+    }
+
+    const attachmentId = dto.attachment_id?.trim() || (await this.nextAttachmentId(emailId));
+    const exist = await this.attachments.findOne({ where: { attachment_id: attachmentId } });
+    if (exist && !exist.is_deleted) throw new ConflictException('attachment_id sudah dipakai');
+
+    if (exist) {
+      await this.attachments.update(
+        { attachment_id: attachmentId },
+        { email_id: emailId, doc_content_id: contentId, is_deleted: false, modified_by: username },
+      );
+    } else {
+      await this.attachments.save(
+        this.attachments.create({
+          attachment_id: attachmentId,
+          email_id: emailId,
+          doc_content_id: contentId,
+          created_by: username,
+          modified_by: username,
+        }),
+      );
+    }
+
+    const rows = await this.emailAttachments(emailId);
+    return rows.find((r) => r.attachment_id === attachmentId) ?? { attachment_id: attachmentId };
+  }
+
+  async emailAttachmentRemove(emailId: string, attachmentId: string, username: string) {
+    const r = await this.attachments.update(
+      { attachment_id: attachmentId, email_id: emailId, is_deleted: false },
+      { is_deleted: true, modified_by: username },
+    );
+    if (!r.affected) throw new NotFoundException(`Attachment ${attachmentId} tidak ditemukan`);
     return { ok: true };
   }
 

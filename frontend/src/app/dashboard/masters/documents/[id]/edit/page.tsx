@@ -310,11 +310,17 @@ export default function DocumentEditPage() {
   const stateColor =
     saveState === 'error' || saveState === 'conflict' ? 'text-red-700' : saveState === 'saved' ? 'text-emerald-700' : 'text-slate-600';
   const isInfo = message === 'Dokumen kembali ke DRAFT' || message === 'Dokumen difinalkan';
+  // Dibuka dari halaman lain (mis. lampiran email) lewat ?from=/dashboard/...
+  const backHref = (() => {
+    if (typeof window === 'undefined') return '/dashboard/masters/documents';
+    const from = new URLSearchParams(window.location.search).get('from');
+    return from && from.startsWith('/dashboard/') ? from : '/dashboard/masters/documents';
+  })();
 
   return (
     <div className="-m-6 flex flex-col h-screen">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 bg-white border-b">
-        <button className="btn-light !py-1" onClick={() => leave('/dashboard/masters/documents')}>← Kembali</button>
+        <button className="btn-light !py-1" onClick={() => leave(backHref)}>← Kembali</button>
         <span className="font-mono text-sm text-slate-500">{doc.document_id}</span>
         <input
           className="input !w-auto min-w-[14rem] !py-1 font-semibold"

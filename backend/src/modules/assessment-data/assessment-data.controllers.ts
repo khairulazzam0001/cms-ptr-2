@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { CurrentUsername } from '../../common/decorators/current-user.decorator';
 import { AssessmentDataService } from './assessment-data.service';
 import {
   ActivityQueryDto,
@@ -7,6 +8,7 @@ import {
   CreateActivityDto,
   CreateActorDto,
   CreateChatDto,
+  CreateEmailAttachmentDto,
   CreateEmailDto,
   CreateScenarioActivityDto,
   EmailQueryDto,
@@ -50,9 +52,29 @@ export class ChatsController {
 export class EmailsController {
   constructor(private svc: AssessmentDataService) {}
   @Get() list(@Query() q: EmailQueryDto) { return this.svc.emailList(q); }
+  @Get(':id') one(@Param('id') id: string) { return this.svc.emailOne(id); }
   @Post() create(@Body() dto: CreateEmailDto) { return this.svc.emailCreate(dto); }
   @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateEmailDto) { return this.svc.emailUpdate(id, dto); }
   @Delete(':id') remove(@Param('id') id: string) { return this.svc.emailRemove(id); }
+
+  // Lampiran email (master_email_attachment) + resolusi ke dokumen editor
+  @Get(':id/attachments') attachments(@Param('id') id: string) { return this.svc.emailAttachments(id); }
+  @Post(':id/attachments')
+  addAttachment(
+    @Param('id') id: string,
+    @Body() dto: CreateEmailAttachmentDto,
+    @CurrentUsername() user: string,
+  ) {
+    return this.svc.emailAttachmentCreate(id, dto, user);
+  }
+  @Delete(':id/attachments/:attachmentId')
+  removeAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUsername() user: string,
+  ) {
+    return this.svc.emailAttachmentRemove(id, attachmentId, user);
+  }
 }
 
 // Dropdown referensi (dipakai form Activity / Scenario / Chat / Email)

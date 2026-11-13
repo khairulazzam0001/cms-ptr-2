@@ -10,6 +10,7 @@ import {
   ScenarioActivitiesController,
 } from './assessment-data.controllers';
 import { AssessmentDataService } from './assessment-data.service';
+import { MasterDocument, MasterDocumentContent } from '../documents/document.entity';
 import {
   Activity,
   ActivityType,
@@ -55,6 +56,8 @@ import {
       Folder,
       Email,
       EmailAttachment,
+      MasterDocument,
+      MasterDocumentContent,
     ]),
   ],
   controllers: [
