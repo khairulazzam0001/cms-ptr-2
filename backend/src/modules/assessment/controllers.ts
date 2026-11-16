@@ -1,7 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { CurrentUsername } from '../../common/decorators/current-user.decorator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
-import { AssessmentCopyService } from './assessment-copy.service';
 import { AssessmentService } from './assessment.service';
 import {
   AddCompetencyToDesignDto,
@@ -61,20 +59,10 @@ export class SimulationsController {
 
 @Controller('assessment-designs')
 export class AssessmentDesignsController {
-  constructor(
-    private svc: AssessmentService,
-    private copySvc: AssessmentCopyService,
-  ) {}
+  constructor(private svc: AssessmentService) {}
   @Get() list(@Query() q: PaginationDto) { return this.svc.adesignList(q); }
   @Get(':id') one(@Param('id') id: string) { return this.svc.adesignOne(id); }
   @Post() create(@Body() dto: CreateAssessmentDesignDto) { return this.svc.adesignCreate(dto); }
-
-  // Copy seluruh data assessment design (design, detail, actor, activity, scenario,
-  // chat, email + attachment, dokumen + konten). Satu transaksi.
-  @Post(':id/copy')
-  copy(@Param('id') id: string, @CurrentUsername() username?: string) {
-    return this.copySvc.copy(id, username || 'admin');
-  }
   @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateAssessmentDesignDto) { return this.svc.adesignUpdate(id, dto); }
   @Delete(':id') remove(@Param('id') id: string) { return this.svc.adesignRemove(id); }
 
