@@ -1,0 +1,103 @@
+{
+"select * from master_email_attachment mea": [
+	{
+		"attachment_id" : "ATT-COACHING-EMAIL-1-1",
+		"email_id" : "COACHING-EMAIL-1",
+		"doc_content_id" : "COACHING-LAMP-EMAIL-1-p1",
+		"created_by" : "system",
+		"created_date" : "2025-07-25T02:02:20.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-25T02:02:20.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "ATT-MA-1",
+		"email_id" : "MA-1",
+		"doc_content_id" : "docs-content-1",
+		"created_by" : "system",
+		"created_date" : "2025-07-25T02:02:20.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-25T02:02:35.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "ATT-MA-P-1-1",
+		"email_id" : "MA-P-1",
+		"doc_content_id" : "docs-content-2",
+		"created_by" : "system",
+		"created_date" : "2025-07-25T02:02:20.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-25T02:02:20.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "ATT-MA-P-1-2",
+		"email_id" : "MA-P-1",
+		"doc_content_id" : "docs-content-3",
+		"created_by" : "system",
+		"created_date" : "2025-07-25T02:03:20.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-25T02:03:20.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "ATT-Prod-P-1",
+		"email_id" : "Prod-P-1",
+		"doc_content_id" : "docs-content-4",
+		"created_by" : "system",
+		"created_date" : "2025-07-25T02:03:20.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-25T02:03:20.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "ATT-QA-P-1",
+		"email_id" : "QA-P-1",
+		"doc_content_id" : "docs-content-4",
+		"created_by" : "system",
+		"created_date" : "2025-07-25T02:03:20.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-25T02:03:20.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "PRBN-LAMP-1-EMAIL-1",
+		"email_id" : "PRBN-EMAIL-1",
+		"doc_content_id" : "PRBN-LAMP-1-EMAIL-1",
+		"created_by" : "system",
+		"created_date" : "2025-10-16T10:37:37.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-10-16T10:37:43.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "PRBN-LAMP-2-EMAIL-1",
+		"email_id" : "PRBN-EMAIL-1",
+		"doc_content_id" : "PRBN-LAMP-2-EMAIL-1",
+		"created_by" : "system",
+		"created_date" : "2025-10-16T10:37:37.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-10-16T10:37:43.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "PRBN-LAMP-EMAIL-1-1",
+		"email_id" : "PRBN-B-EMAIL-1",
+		"doc_content_id" : "PRBN-B-LAMP-1-EMAIL-1",
+		"created_by" : "system",
+		"created_date" : "2025-10-16T10:37:37.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-10-16T10:37:43.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"attachment_id" : "PRBN-LAMP-EMAIL-1-2",
+		"email_id" : "PRBN-B-EMAIL-1",
+		"doc_content_id" : "PRBN-B-LAMP-2-EMAIL-1",
+		"created_by" : "system",
+		"created_date" : "2025-10-16T10:37:37.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-10-16T10:37:43.000Z",
+		"is_deleted" : 0
+	}
+]}

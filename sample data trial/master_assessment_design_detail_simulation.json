@@ -1,0 +1,93 @@
+{
+"select * from master_assessment_design_detail_simulation madds": [
+	{
+		"assessment_design_detail_simulation_id" : "design-02- bottleneck",
+		"assessment_design_id" : "design-02",
+		"simulation_id" : "bottleneck",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "design-02-coaching",
+		"assessment_design_id" : "design-02",
+		"simulation_id" : "coaching",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "DESIGN-ALL-bottleneck",
+		"assessment_design_id" : "DESIGN-ALL",
+		"simulation_id" : "bottleneck",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "DESIGN-ALL-coaching",
+		"assessment_design_id" : "DESIGN-ALL",
+		"simulation_id" : "coaching",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "DESIGN-ALL-csr",
+		"assessment_design_id" : "DESIGN-ALL",
+		"simulation_id" : "csr",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "DESIGN-ALL-platform",
+		"assessment_design_id" : "DESIGN-ALL",
+		"simulation_id" : "platform",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "DESIGN-ALL-probono-A",
+		"assessment_design_id" : "DESIGN-ALL",
+		"simulation_id" : "probono-A",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "DESIGN-ALL-probono-B",
+		"assessment_design_id" : "DESIGN-ALL",
+		"simulation_id" : "probono-B",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_simulation_id" : "DESIGN-ALL-swot",
+		"assessment_design_id" : "DESIGN-ALL",
+		"simulation_id" : "swot",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	}
+]}

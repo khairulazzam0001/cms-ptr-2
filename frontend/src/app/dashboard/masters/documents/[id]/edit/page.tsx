@@ -10,6 +10,7 @@ import DocumentEditor, { DocumentEditorHandle } from '@/components/document/Docu
 import DocumentPreview from '@/components/document/DocumentPreview';
 import HeaderFooterPanel from '@/components/document/HeaderFooterPanel';
 import { EMPTY_HEADER_FOOTER, HeaderFooter, pickHeaderFooter } from '@/lib/document/headerFooter';
+import { useLanguages } from '@/lib/useLanguages';
 
 type SaveState = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
 
@@ -43,6 +44,9 @@ export default function DocumentEditPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [showHf, setShowHf] = useState(false);
   const [headerFooter, setHeaderFooter] = useState<HeaderFooter>(EMPTY_HEADER_FOOTER);
+  const { languages } = useLanguages();
+  const [targetLang, setTargetLang] = useState('');
+  const [translating, setTranslating] = useState(false);
 
   // State simpan dibaca di callback/timer -> simpan juga di ref
   const docRef = useRef<DocumentHeader | null>(null);
@@ -277,6 +281,38 @@ export default function DocumentEditPage() {
     }
   }
 
+  async function translateDocument() {
+    const lang = languages.find((l) => l.language_id === targetLang);
+    if (!lang) {
+      setMessage('Pilih bahasa target terlebih dahulu');
+      return;
+    }
+    const pages = editorRef.current?.getPages();
+    if (!pages) {
+      setMessage('Gagal menghitung halaman, coba lagi.');
+      return;
+    }
+    if (hasUnsaved() && !confirm('Konten editor saat ini akan diganti hasil terjemahan. Lanjutkan?')) return;
+    setTranslating(true);
+    setMessage('');
+    try {
+      const res = await api.post<{ html?: string }>('/translate', {
+        html: mergePages(pages),
+        target_language: lang.language_name,
+      });
+      if (res.data.html) {
+        setInitialHtml(res.data.html);
+        setLoadSeq((n) => n + 1);
+        onChange(); // tandai berubah -> autosave
+        setMessage(`Diterjemahkan ke ${lang.language_name}. Menyimpan otomatis…`);
+      }
+    } catch (e) {
+      setMessage(apiErrorMessage(e, 'Gagal menerjemahkan dokumen'));
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   async function saveName() {
     const current = docRef.current;
     if (!current) return;
@@ -310,11 +346,17 @@ export default function DocumentEditPage() {
   const stateColor =
     saveState === 'error' || saveState === 'conflict' ? 'text-red-700' : saveState === 'saved' ? 'text-emerald-700' : 'text-slate-600';
   const isInfo = message === 'Dokumen kembali ke DRAFT' || message === 'Dokumen difinalkan';
+  // Dibuka dari halaman lain (mis. lampiran email) lewat ?from=/dashboard/...
+  const backHref = (() => {
+    if (typeof window === 'undefined') return '/dashboard/masters/documents';
+    const from = new URLSearchParams(window.location.search).get('from');
+    return from && from.startsWith('/dashboard/') ? from : '/dashboard/masters/documents';
+  })();
 
   return (
     <div className="-m-6 flex flex-col h-screen">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 bg-white border-b">
-        <button className="btn-light !py-1" onClick={() => leave('/dashboard/masters/documents')}>← Kembali</button>
+        <button className="btn-light !py-1" onClick={() => leave(backHref)}>← Kembali</button>
         <span className="font-mono text-sm text-slate-500">{doc.document_id}</span>
         <input
           className="input !w-auto min-w-[14rem] !py-1 font-semibold"
@@ -342,7 +384,23 @@ export default function DocumentEditPage() {
         {message && (
           <span className={`text-sm ${isInfo ? 'text-slate-600' : 'text-red-700'}`} role={isInfo ? 'status' : 'alert'}>{message}</span>
         )}
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2 items-center">
+          <select
+            className="input !w-auto !py-1"
+            value={targetLang}
+            onChange={(e) => setTargetLang(e.target.value)}
+            aria-label="Bahasa target terjemahan"
+          >
+            <option value="">Bahasa target…</option>
+            {languages.map((l) => (
+              <option key={l.language_id} value={l.language_id}>
+                {l.language_name}{l.native_name ? ` (${l.native_name})` : ''}
+              </option>
+            ))}
+          </select>
+          <button className="btn-light !py-1" onClick={translateDocument} disabled={translating || !targetLang || saveState === 'conflict'}>
+            {translating ? 'Menerjemahkan…' : 'Translate'}
+          </button>
           <button className="btn-light !py-1" onClick={() => setShowHf(true)}>Header &amp; Footer</button>
           <button className="btn-light !py-1" onClick={openPreview} disabled={busy}>Preview</button>
           <button className="btn-dark !py-1" onClick={finalize} disabled={busy || saveState === 'conflict'}>Simpan Final</button>

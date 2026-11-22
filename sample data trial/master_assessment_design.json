@@ -1,0 +1,29 @@
+{
+"select * from master_assessment_design": [
+	{
+		"assessment_design_id" : "design-02",
+		"assessment_design_name" : "Bottleneck - Coaching",
+		"assessment_design_desc" : "Bottleneck - Coaching",
+		"level_id" : "3",
+		"design_id" : "ambj-01",
+		"time_reminder" : 100,
+		"created_by" : "system",
+		"created_date" : "2026-10-12T02:56:29.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2026-10-12T02:56:29.000Z",
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_id" : "DESIGN-ALL",
+		"assessment_design_name" : "Design All Simulation",
+		"assessment_design_desc" : "Semua Simulasi",
+		"level_id" : "3",
+		"design_id" : "ambj-01",
+		"time_reminder" : 900,
+		"created_by" : "system",
+		"created_date" : "2025-07-08T02:56:29.000Z",
+		"modified_by" : "system",
+		"modified_date" : "2025-07-08T02:56:29.000Z",
+		"is_deleted" : 0
+	}
+]}

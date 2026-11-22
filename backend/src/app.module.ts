@@ -9,9 +9,11 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 // import { ProductsModule } from './modules/masters/products/products.module';
 import { ExampleMasterModule } from './modules/masters/example-master/example-master.module';
 import { AssessmentModule } from './modules/assessment/assessment.module';
+import { AssessmentDataModule } from './modules/assessment-data/assessment-data.module';
 import { SheetsModule } from './modules/sheets/sheets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { UploadDocumentsModule } from './modules/upload-documents/upload-documents.module';
+import { TranslateModule } from './modules/translate/translate.module';
 
 @Module({
   imports: [
@@ -32,9 +34,11 @@ import { UploadDocumentsModule } from './modules/upload-documents/upload-documen
     UploadsModule,
     ExampleMasterModule,
     AssessmentModule,
+    AssessmentDataModule,
     SheetsModule,
     DocumentsModule,
     UploadDocumentsModule,
+    TranslateModule,
   ],
 })
 export class AppModule {}

@@ -10,6 +10,11 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import {
+  Activity as MasterActivity,
+  Folder as MasterFolder,
+} from '../assessment-data/entities';
+
 export const DOCUMENT_STATUSES = ['DRAFT', 'FINAL'] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
@@ -48,6 +53,26 @@ export class MasterDocument {
 
   @Column({ type: 'varchar', length: 20, nullable: true, default: null })
   read_only?: string | null;
+
+  // === Kolom tambahan sesuai ERD assessment (docs: master_document) ===
+  // Semua opsional: dokumen dari Document Generator / Upload Document tidak wajib punya folder.
+  @Column({ length: 50, nullable: true })
+  folder_id?: string;
+
+  @ManyToOne(() => MasterFolder, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'folder_id' })
+  folder?: MasterFolder;
+
+  @Column({ length: 50, nullable: true })
+  activity_id?: string;
+
+  @ManyToOne(() => MasterActivity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'activity_id' })
+  activity?: MasterActivity;
+
+  // master_actor.actor_id (pemilik dokumen)
+  @Column({ length: 50, nullable: true })
+  owner?: string;
 
   // Denormalisasi jumlah halaman untuk list (tanpa join ke konten)
   @Column({ type: 'int', default: 0 })
@@ -106,6 +131,10 @@ export class MasterDocumentContent {
 
   @Column({ type: 'mediumtext' })
   content_html: string;
+
+  // Kolom asli ERD/sample (markdown sumber); tidak dipakai editor, hanya disimpan.
+  @Column({ type: 'longtext', nullable: true })
+  document_content_md?: string;
 
   @Column({ nullable: true })
   created_by?: string;

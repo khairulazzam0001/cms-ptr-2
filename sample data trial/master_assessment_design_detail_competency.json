@@ -1,0 +1,103 @@
+{
+"select * from master_assessment_design_detail_competency": [
+	{
+		"assessment_design_detail_competency_id" : "design-02-CO",
+		"assessment_design_id" : "design-02",
+		"competency_id" : "COMP_DDI_CO",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "design-02-EC",
+		"assessment_design_id" : "design-02",
+		"competency_id" : "COMP_DDI_EC",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-BA",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_BA",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-CI",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_CI",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-CO",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_CO",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-CP",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_CP",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-DE",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_DE",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-EC",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_EC",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-PS",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_PS",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	},
+	{
+		"assessment_design_detail_competency_id" : "DESIGN-ALL-TS",
+		"assessment_design_id" : "DESIGN-ALL",
+		"competency_id" : "COMP_DDI_TS",
+		"created_by" : "system",
+		"created_date" : null,
+		"modified_by" : "system",
+		"modified_date" : null,
+		"is_deleted" : 0
+	}
+]}
