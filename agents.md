@@ -18,6 +18,7 @@ Modul **Upload Document**: upload file HTML read-only ke tabel yang sama
 - Frontend: Next.js 14 (App Router) + Tailwind + Axios
 - Integrasi: `googleapis` (Sheets API v4, Drive API v3), `@nestjs/schedule` (cron)
 - Document Generator: TipTap 3.31.4 (frontend, versi dikunci), `sanitize-html` 2.17.0 (backend, dikunci)
+- Import BARS: `exceljs` 4.4.0 (backend, MIT, dikunci) untuk baca/tulis .xlsx
 - Test: Jest + ts-jest (backend, `*.spec.ts`), Vitest 3 + jsdom (frontend, `*.test.ts`)
 
 ## 2. Struktur repo
@@ -52,7 +53,8 @@ cms-ptr-2/
                               AssessmentDesignsController
       assessment.module.ts
     src/modules/assessment-data/  <- tabel pelengkap ERD (lihat §2a)
-      entities.ts          <- 16 entity: master_key_action, ref_group_rating,
+      entities.ts          <- 18 entity: master_key_action, master_key_action_bars,
+                              master_key_action_bars_behaviour, ref_group_rating,
                               ref_mapping_group_rating, trans_batch_project, trans_participant,
                               trans_participant_assessor, master_actor, ref_activity_type,
                               master_activity, master_prompt, master_scenario_activity,
@@ -62,12 +64,15 @@ cms-ptr-2/
       assessment-data.service.ts <- CRUD 5 master (actor/activity/scenario-activity/chat/email):
                               soft delete, revive id yang sudah dihapus, clean() -> '' jadi NULL
                               untuk kolom FK, applySearch() dukung kolom ber-alias;
-                              lampiran email: list/attach/detach + resolve doc_content_id -> dokumen
+                              lampiran email: list/attach/detach + resolve doc_content_id -> dokumen;
+                              getKeyActionMatrix(simulation_id): gabungan key action + BARS +
+                              behaviour (read-only, dipakai halaman Key Action Matrix)
       controllers.ts       <- /activities, /scenario-activities, /chats, /emails, /actors
                               (email: GET /emails/:id, GET|POST /emails/:id/attachments,
                               DELETE /emails/:id/attachments/:attachmentId)
                               + options: /activity-types/options/all, /actors/options/all,
                               /prompts/options/all
+                              + GET /key-action-matrix?simulation_id=... (read-only)
       assessment-data.module.ts <- TypeOrmModule.forFeature(16 entity) + controllers/providers
     src/modules/sheets/
       sheets.service.ts    <- Sheets API: status(), collectTables(), syncAll(),
@@ -90,6 +95,10 @@ cms-ptr-2/
                               tag code/pre/style/script/svg dilewati.
                               Model default gemini-3.6-flash + fallback (3.5-flash, 2.5-flash)
                               saat 404/429/503; ganti via GEMINI_MODEL.
+    src/modules/key-action-bars/ <- Import/Export BARS & behaviour via Excel (lihat §5c):
+                              bars-format.ts (kolom, batas, pola ID), bars-parser.ts &
+                              bars-diff.ts (fungsi murni), bars-workbook.ts (exceljs),
+                              service/controller /key-action-bars/*, *.spec.ts
     src/common/decorators/current-user.decorator.ts <- @CurrentUsername() dari JWT (kolom audit)
     src/modules/masters/example-master/ <- TEMPLATE modul master generik (jangan hapus)
     src/database/seed.ts   <- seed admin + data contoh (Level 3, DSG-ALL, 3 competency,
@@ -120,6 +129,13 @@ cms-ptr-2/
       emails/[id]/page.tsx         <- halaman edit email + list lampiran (tambah/hapus/buka dokumen)
                                       + terjemahan Subject/Content (dropdown master_language)
       actors/page.tsx              <- CRUD + paging + filter design/level + superior (self-ref)
+      key-action-matrix/page.tsx   <- tabel Kompetensi | Key Action | Kode |
+                                      BARS POSITIVE/NETRAL/NEGATIVE per simulation
+                                      (filter simulation + checkbox tampilkan tanpa BARS,
+                                      ?simulation_id=, tombol Import / Export BARS,
+                                      tooltip ID saat hover, tombol Hapus BARS = hard delete §5c)
+      key-action-bars-import/page.tsx <- Import BARS: pilih simulation, template/export,
+                                      upload .xlsx -> preview (ringkasan + error per baris) -> simpan
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
       example-masters/page.tsx <- template UI master generik
       documents/page.tsx           <- list dokumen (search, filter status/aktif, paging, aksi)
@@ -135,6 +151,7 @@ cms-ptr-2/
     src/components/emails/EmailEditorForm.tsx <- form halaman email (dipakai new & [id])
     src/lib/uploadDocument.ts  <- tipe, validasi klien, buildPreviewSrcdoc (CSP + buang meta refresh/base)
     src/lib/useLanguages.ts    <- hook daftar bahasa target dari /languages/options/all
+    src/lib/keyActionBars.ts   <- tipe respons Import BARS + helper (validasi .xlsx, nama file unduhan)
     src/components/upload-document/HtmlPreview.tsx <- preview di <iframe sandbox=""> (tanpa izin)
     .env.example           <- NEXT_PUBLIC_API_URL=http://localhost:3001/api
                              (aktif sebagai frontend/.env.local)
@@ -154,14 +171,30 @@ Sumber: https://dbdiagram.io/d/assessment-ano-6ad87bc7f8963ca19c6f79e6
   `master_email_attachment` (via `/emails/:id/attachments`), `master_language`
   (dropdown `/languages/options/all`, seed `npm run seed:languages`).
   (halaman: `/dashboard/masters/actors|activities|scenario-activities|chats|emails`).
-- **Dibuat oleh `assessment-data` — entity saja (belum ada API/UI)**: `master_key_action`,
-  `ref_group_rating`, `ref_mapping_group_rating`, `trans_batch_project`, `trans_participant`,
+- **Dibuat oleh `assessment-data` — API read-only + UI (halaman Key Action Matrix)**:
+  `master_key_action`, `master_key_action_bars`, `master_key_action_bars_behaviour`
+  via `GET /key-action-matrix?simulation_id=...` (gabungan, tanpa CRUD).
+  Halaman: `/dashboard/masters/key-action-matrix`. BARS + behaviour diisi lewat Import BARS (Excel, §5c).
+- **Dibuat oleh `assessment-data` — entity saja (belum ada API/UI)**: `ref_group_rating`,
+  `ref_mapping_group_rating`, `trans_batch_project`, `trans_participant`,
   `trans_participant_assessor`, `ref_activity_type`,
   `master_prompt`, `master_call`, `master_folder`.
   Dropdown form memakai `/actors|prompts|activity-types/options/all` (kosong sampai di-seed).
-- Tabel dibuat otomatis oleh `synchronize: true` saat backend start (DEV). 45 foreign key
+- Tabel dibuat otomatis oleh `synchronize: true` saat backend start (DEV). 49 foreign key
   mengikuti garis `Ref:` di ERD (termasuk `master_actor.superior` self-reference dan
   `master_folder.{level_id,design_id}`).
+- `master_key_action` mengikuti DDL: `competency_id` NOT NULL dengan FK
+  `fk_key_action_competency` ON DELETE RESTRICT ON UPDATE CASCADE (entity `KeyAction`).
+  `key_action_name` tetap NOT NULL dan `is_deleted` default false sesuai konvensi tabel master.
+- `master_key_action_bars` (entity `KeyActionBars`) mengikuti DDL: FK
+  `fk_action_bars_master_key_action` dan `fk_key_action_bars_master_simulation`, keduanya
+  ON DELETE RESTRICT ON UPDATE CASCADE; `key_action_id` NOT NULL, `simulation_id` nullable.
+- `master_key_action_bars_behaviour` (entity `KeyActionBarsBehaviour`) mengikuti DDL: FK
+  `fk_bars_behaviour_action_bars` (`bars_id`) dan `fk_bars_behaviour_master_key_action`
+  (`key_action_id`), keduanya NOT NULL ON DELETE RESTRICT ON UPDATE CASCADE.
+- Ketiga entity `master_key_action*` memakai `NullableAuditColumns` (tanggal audit nullable)
+  karena data impor berisi NULL; dengan NOT NULL `synchronize` gagal
+  ("Invalid use of NULL value") saat backend start.
 - **Beda sengaja** dari ERD (jangan "dibenarkan" tanpa migrasi data):
   - `master_document_content`: PK `document_content_id` (uuid) + kolom `content_html`,
     bukan `doc_content_id`/`document_content` (dipakai modul Document Generator + Upload).
@@ -310,6 +343,30 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
   Unduhan: attachment + `nosniff`. File tidak pernah ditulis ke `/uploads` (publik).
 - Upload: multer memory storage, `MAX_HTML_BYTES` 2 MB (terpisah dari `MAX_FILE_MB`), `.html/.htm`, UTF-8.
 
+## 5c. Import BARS (Excel)
+
+- Spesifikasi: `PRD_Import_BARS.md`. Endpoint `/key-action-bars/{template,export,summary,import/preview,import}`;
+  `simulation_id` wajib (kecuali template), simulation dipilih di layar, bukan per baris di file.
+- **Dua format sheet `BARS`**, dikenali dari header saat import (`readBarsWorkbook`): **matriks** (default
+  template/export, `?format=matrix|flat`; kolom `key_action_id`, `{TIPE}`, `{TIPE} behaviour`; blok per key action,
+  nomor dari urutan baris, weight selalu 1 & need_ai selalu TRUE — `parseMatrixRows`, PRD §5.2a) dan **flat**
+  (di bawah — `parseBarsRows`). Keduanya menghasilkan `ParsedBars[]` yang sama; diff/simpan tidak tahu format.
+- Format flat: 1 baris = 1 behaviour (kolom di `bars-format.ts`). ID dibuat sistem:
+  `{key_action_id}-{bars_type}-{simulation_id}-{bars_no}` dan `{bars_id}-{behaviour_no}`; > 50 karakter = error.
+  `weight` bilangan bulat >= 1 (kosong = 1), `need_ai` kosong = TRUE, key action dicocokkan via `key_action_id` saja.
+- Mode **ganti per simulation** dalam 1 transaksi (baris simulation dikunci): upsert isi file, data aktif yang tidak
+  ada di file -> **soft delete**. Import memvalidasi ulang (tidak percaya preview); ada error -> 400 + `errors[]`.
+- Sheet `Info` menyimpan `simulation_id` asal file; beda dengan simulation terpilih -> error (cegah salah upload).
+- File: `.xlsx` (dicek ekstensi + magic zip), maks 5 MB / 5.000 baris, multer memory storage.
+- Teks dibersihkan dari spasi tepi & zero-width (U+200B dll). Data lama `weight` NULL dianggap 1 saat membandingkan.
+- Nama file unduhan dibentuk di frontend (header `Content-Disposition` tidak terbaca lewat CORS).
+- ID dicocokkan tanpa beda huruf besar/kecil (kolasi MySQL `_ci`); ID yang sudah tersimpan dipakai apa adanya
+  (`bars-diff.ts`), agar data lama mis. `...-BOTTLENECK-1` tidak dianggap baru + dihapus.
+- **Hapus BARS per simulation = HARD DELETE** (permintaan user, pengecualian aturan soft delete):
+  `DELETE /key-action-bars?simulation_id=...` menghapus fisik semua BARS + behaviour simulation itu, termasuk
+  yang sudah soft delete (behaviour dulu, FK RESTRICT), dalam 1 transaksi. UI: tombol di Key Action Matrix,
+  user wajib mengetik `simulation_id`. Jangan diubah jadi soft delete.
+
 ## 6. Sinkronisasi Google (Sheets jalan, Drive mati)
 
 - **Sheets (AKTIF jika dikonfigurasi)**: `SheetsService.collectTables()` = 1 sumber data
@@ -374,9 +431,9 @@ Prioritas kira-kira dari atas. Kerjakan hanya bila diminta user.
 
 ```powershell
 cd backend; npm run build                      # harus 0 error
-cd backend; npm test                           # Jest (documents, sanitize, upload-documents)
+cd backend; npm test                           # Jest (documents, sanitize, upload-documents, key-action-bars)
 cd frontend; npx tsc --noEmit                  # cek tipe (lihat known issue example-masters)
-cd frontend; npm test                          # Vitest (paginator, split/merge, paste, upload preview)
+cd frontend; npm test                          # Vitest (paginator, split/merge, paste, upload preview, import BARS)
 # lalu dengan server jalan + sudah login:
 # POST /api/auth/login -> token
 # GET  /api/assessment-designs?limit=5 (Bearer) -> meta + data

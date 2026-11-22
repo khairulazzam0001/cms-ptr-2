@@ -4,6 +4,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -48,9 +49,34 @@ abstract class AuditColumns {
   is_deleted: boolean;
 }
 
+/**
+ * Sama seperti AuditColumns, tetapi tanggal audit boleh NULL.
+ * Dipakai tabel master_key_action* karena data impor memakai NULL untuk
+ * created_date/modified_date; dengan NOT NULL, synchronize gagal
+ * ("Invalid use of NULL value") saat backend start.
+ */
+abstract class NullableAuditColumns {
+  @Column({ nullable: true })
+  created_by?: string;
+
+  @CreateDateColumn({ nullable: true })
+  created_date?: Date;
+
+  @Column({ nullable: true })
+  modified_by?: string;
+
+  @UpdateDateColumn({ nullable: true })
+  modified_date?: Date;
+
+  @Column({ default: false })
+  is_deleted: boolean;
+}
+
 // ============ master_key_action ============
+// DDL: competency_id NOT NULL, FK `fk_key_action_competency`
+// ON DELETE RESTRICT ON UPDATE CASCADE.
 @Entity('master_key_action')
-export class KeyAction extends AuditColumns {
+export class KeyAction extends NullableAuditColumns {
   @PrimaryColumn({ length: 50 })
   key_action_id: string;
 
@@ -63,12 +89,99 @@ export class KeyAction extends AuditColumns {
   @Column({ type: 'longtext', nullable: true })
   key_action_desc?: string;
 
-  @Column({ length: 50, nullable: true })
-  competency_id?: string;
+  @Column({ length: 50 })
+  competency_id: string;
 
-  @ManyToOne(() => Competency, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'competency_id' })
+  @ManyToOne(() => Competency, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  @JoinColumn({
+    name: 'competency_id',
+    foreignKeyConstraintName: 'fk_key_action_competency',
+  })
   competency?: Competency;
+
+  @Column({ type: 'int', default: 0 })
+  sort_order: number;
+}
+
+// ============ master_key_action_bars ============
+// DDL: FK `fk_action_bars_master_key_action` dan
+// `fk_key_action_bars_master_simulation`, keduanya
+// ON DELETE RESTRICT ON UPDATE CASCADE.
+@Entity('master_key_action_bars')
+export class KeyActionBars extends NullableAuditColumns {
+  @PrimaryColumn({ length: 50 })
+  bars_id: string;
+
+  @Column({ length: 50 })
+  key_action_id: string;
+
+  @ManyToOne(() => KeyAction, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  @JoinColumn({
+    name: 'key_action_id',
+    foreignKeyConstraintName: 'fk_action_bars_master_key_action',
+  })
+  keyAction?: KeyAction;
+
+  @Column({ length: 100, nullable: true })
+  bars_type?: string;
+
+  @Column({ type: 'longtext', nullable: true })
+  bars_name?: string;
+
+  @Column({ type: 'int', default: 0 })
+  sort_order: number;
+
+  @Column({ default: false })
+  need_ai: boolean;
+
+  @Column({ length: 50, nullable: true })
+  simulation_id?: string;
+
+  @ManyToOne(() => Simulation, { nullable: true, onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  @JoinColumn({
+    name: 'simulation_id',
+    foreignKeyConstraintName: 'fk_key_action_bars_master_simulation',
+  })
+  simulation?: Simulation;
+
+  @OneToMany(() => KeyActionBarsBehaviour, (b) => b.bars)
+  behaviours?: KeyActionBarsBehaviour[];
+}
+
+// ============ master_key_action_bars_behaviour ============
+// DDL: FK `fk_bars_behaviour_action_bars` (bars_id) dan
+// `fk_bars_behaviour_master_key_action` (key_action_id), keduanya NOT NULL
+// dengan ON DELETE RESTRICT ON UPDATE CASCADE.
+@Entity('master_key_action_bars_behaviour')
+export class KeyActionBarsBehaviour extends NullableAuditColumns {
+  @PrimaryColumn({ length: 50 })
+  bars_behaviour_id: string;
+
+  @Column({ length: 50 })
+  bars_id: string;
+
+  @ManyToOne(() => KeyActionBars, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  @JoinColumn({
+    name: 'bars_id',
+    foreignKeyConstraintName: 'fk_bars_behaviour_action_bars',
+  })
+  bars?: KeyActionBars;
+
+  @Column({ length: 50 })
+  key_action_id: string;
+
+  @ManyToOne(() => KeyAction, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  @JoinColumn({
+    name: 'key_action_id',
+    foreignKeyConstraintName: 'fk_bars_behaviour_master_key_action',
+  })
+  keyAction?: KeyAction;
+
+  @Column({ type: 'longtext', nullable: true })
+  bars_behaviour?: string;
+
+  @Column({ type: 'int', nullable: true })
+  weight?: number;
 
   @Column({ type: 'int', default: 0 })
   sort_order: number;

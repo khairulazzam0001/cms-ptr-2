@@ -28,10 +28,13 @@ import {
   Chat,
   Email,
   EmailAttachment,
+  KeyAction,
+  KeyActionBars,
   Language,
   Prompt,
   ScenarioActivity,
 } from './entities';
+import { Simulation } from '../assessment/entities';
 
 function applySearch(qb: any, alias: string, cols: string[], search?: string) {
   if (!search) return;
@@ -74,6 +77,9 @@ export class AssessmentDataService {
     @InjectRepository(Prompt) private prompts: Repository<Prompt>,
     @InjectRepository(ActivityType) private activityTypes: Repository<ActivityType>,
     @InjectRepository(Language) private languages: Repository<Language>,
+    @InjectRepository(KeyAction) private keyActionRepo: Repository<KeyAction>,
+    @InjectRepository(KeyActionBars) private keyActionBarsRepo: Repository<KeyActionBars>,
+    @InjectRepository(Simulation) private simulationRepo: Repository<Simulation>,
   ) {}
 
   // ================= MASTER ACTIVITY =================
@@ -518,5 +524,57 @@ export class AssessmentDataService {
       where: { is_deleted: false, is_active: true },
       order: { language_name: 'ASC' },
     });
+  }
+
+  // ================= KEY ACTION MATRIX =================
+  // Gabungan master_key_action + master_key_action_bars +
+  // master_key_action_bars_behaviour, difilter per simulation.
+  // Return flat per key action; frontend mengelompokkan per competency (rowSpan).
+  async getKeyActionMatrix(simulationId: string) {
+    const actions = await this.keyActionRepo.find({
+      where: { is_deleted: false },
+      relations: ['competency'],
+      order: { competency_id: 'ASC', sort_order: 'ASC', key_action_id: 'ASC' },
+    });
+
+    const bars = await this.keyActionBarsRepo.find({
+      where: { simulation_id: simulationId, is_deleted: false },
+      relations: ['behaviours'],
+      order: { sort_order: 'ASC', bars_id: 'ASC' },
+    });
+
+    const behavioursOf = (keyActionId: string, type: string) =>
+      bars
+        .filter((b) => b.key_action_id === keyActionId && b.bars_type === type)
+        .map((b) => ({
+          bars_id: b.bars_id,
+          bars_name: b.bars_name ?? '',
+          need_ai: b.need_ai,
+          behaviours: (b.behaviours ?? [])
+            .filter((beh) => !beh.is_deleted && beh.bars_behaviour)
+            .sort(
+              (a, b2) =>
+                (a.sort_order ?? 0) - (b2.sort_order ?? 0) ||
+                a.bars_behaviour_id.localeCompare(b2.bars_behaviour_id),
+            )
+            .map((beh) => ({
+              bars_behaviour_id: beh.bars_behaviour_id,
+              bars_behaviour: beh.bars_behaviour as string,
+            })),
+        }));
+
+    return actions.map((action) => ({
+      competency_id: action.competency_id,
+      competency: action.competency?.competency_name || '-',
+      key_action_id: action.key_action_id,
+      key_action_name: action.key_action_name,
+      key_action_desc: action.key_action_desc ?? null,
+      code: action.key_action_code ?? action.key_action_id,
+      bars: {
+        POSITIVE: behavioursOf(action.key_action_id, 'POSITIVE'),
+        NETRAL: behavioursOf(action.key_action_id, 'NETRAL'),
+        NEGATIVE: behavioursOf(action.key_action_id, 'NEGATIVE'),
+      },
+    }));
   }
 }

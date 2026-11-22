@@ -6,12 +6,14 @@ import {
   ActorsController,
   ChatsController,
   EmailsController,
+  KeyActionMatrixController,
   LanguagesController,
   PromptsController,
   ScenarioActivitiesController,
 } from './assessment-data.controllers';
 import { AssessmentDataService } from './assessment-data.service';
 import { MasterDocument, MasterDocumentContent } from '../documents/document.entity';
+import { Simulation } from '../assessment/entities';
 import {
   Activity,
   ActivityType,
@@ -24,6 +26,8 @@ import {
   Folder,
   GroupRating,
   KeyAction,
+  KeyActionBars,
+  KeyActionBarsBehaviour,
   Language,
   MappingGroupRating,
   Participant,
@@ -43,6 +47,9 @@ import {
   imports: [
     TypeOrmModule.forFeature([
       KeyAction,
+      KeyActionBars,
+      KeyActionBarsBehaviour,
+      Simulation,
       GroupRating,
       MappingGroupRating,
       BatchProject,
@@ -72,6 +79,7 @@ import {
     ActorsController,
     PromptsController,
     LanguagesController,
+    KeyActionMatrixController,
   ],
   providers: [AssessmentDataService],
   exports: [AssessmentDataService],

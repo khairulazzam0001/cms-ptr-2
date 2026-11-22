@@ -52,6 +52,7 @@ export class SimulationsController {
   constructor(private svc: AssessmentService) {}
   @Get() list(@Query() q: SimulationQueryDto) { return this.svc.simulationList(q); }
   @Get('groups/all') groups() { return this.svc.simulationGroups(); }
+  @Get('options/all') options() { return this.svc.simulationOptions(); }
   @Post() create(@Body() dto: CreateSimulationDto) { return this.svc.simulationCreate(dto); }
   @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateSimulationDto) { return this.svc.simulationUpdate(id, dto); }
   @Delete(':id') remove(@Param('id') id: string) { return this.svc.simulationRemove(id); }

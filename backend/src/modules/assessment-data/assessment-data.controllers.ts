@@ -12,6 +12,7 @@ import {
   CreateEmailDto,
   CreateScenarioActivityDto,
   EmailQueryDto,
+  KeyActionMatrixQueryDto,
   ScenarioActivityQueryDto,
   UpdateActivityDto,
   UpdateActorDto,
@@ -74,6 +75,15 @@ export class EmailsController {
     @CurrentUsername() user: string,
   ) {
     return this.svc.emailAttachmentRemove(id, attachmentId, user);
+  }
+}
+
+// Matriks Key Action x BARS x Behaviour (read-only, filter per simulation)
+@Controller('key-action-matrix')
+export class KeyActionMatrixController {
+  constructor(private svc: AssessmentDataService) {}
+  @Get() matrix(@Query() q: KeyActionMatrixQueryDto) {
+    return this.svc.getKeyActionMatrix(q.simulation_id);
   }
 }
 

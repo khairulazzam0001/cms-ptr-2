@@ -171,6 +171,14 @@ export class AssessmentService {
       .where('s.is_deleted = false AND s.group_simulation_id IS NOT NULL')
       .getRawMany();
   }
+
+  // Dropdown filter (matrix key action)
+  simulationOptions() {
+    return this.simulations.find({
+      where: { is_deleted: false },
+      order: { simulation_name: 'ASC' },
+    });
+  }
   async simulationCreate(dto: CreateSimulationDto) {
     if (await this.simulations.findOne({ where: { simulation_id: dto.simulation_id } }))
       throw new ConflictException('simulation_id sudah dipakai');
