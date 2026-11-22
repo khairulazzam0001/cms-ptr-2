@@ -32,8 +32,11 @@ async function downloadXlsx(url: string, params: Record<string, string>, filenam
   const a = document.createElement('a');
   a.href = href;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(href);
+  a.remove();
+  // dilepas sesaat setelah klik; revoke seketika bisa membatalkan unduhan di sebagian browser
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
 }
 
 // Pesan error dari respons blob (mis. 404 saat unduh)
@@ -56,6 +59,8 @@ export default function ImportBarsPage() {
   const [saved, setSaved] = useState<ImportResult | null>(null);
   const [errors, setErrors] = useState<{ errors: RowError[]; error_total: number } | null>(null);
   const [message, setMessage] = useState('');
+  const [downloading, setDownloading] = useState<'' | 'template' | 'export'>('');
+  const [downloadError, setDownloadError] = useState('');
   const [busy, setBusy] = useState<'' | 'preview' | 'save' | 'download'>('');
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -154,7 +159,8 @@ export default function ImportBarsPage() {
 
   async function download(kind: 'template' | 'export') {
     setBusy('download');
-    setMessage('');
+    setDownloading(kind);
+    setDownloadError('');
     try {
       if (kind === 'template') {
         await downloadXlsx('/key-action-bars/template', simulationId ? { simulation_id: simulationId } : {}, TEMPLATE_FILE_NAME);
@@ -162,9 +168,10 @@ export default function ImportBarsPage() {
         await downloadXlsx('/key-action-bars/export', { simulation_id: simulationId }, exportFileName(simulationId));
       }
     } catch (e) {
-      setMessage(await blobErrorMessage(e, 'Gagal mengunduh'));
+      setDownloadError(await blobErrorMessage(e, 'Gagal mengunduh'));
     } finally {
       setBusy('');
+      setDownloading('');
     }
   }
 
@@ -206,9 +213,16 @@ export default function ImportBarsPage() {
             <b>{current.behaviours}</b> behaviour
           </div>
         )}
-        <div className="ml-auto flex gap-2">
-          <button className="btn-light" onClick={() => download('template')} disabled={busy !== ''}>Unduh template</button>
-          <button className="btn-light" onClick={() => download('export')} disabled={!simulationId || busy !== ''}>Export data</button>
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <div className="flex gap-2">
+            <button className="btn-light" onClick={() => download('template')} disabled={busy !== ''}>
+              {downloading === 'template' ? 'Mengunduh…' : 'Unduh template'}
+            </button>
+            <button className="btn-light" onClick={() => download('export')} disabled={!simulationId || busy !== ''}>
+              {downloading === 'export' ? 'Mengunduh…' : 'Export data'}
+            </button>
+          </div>
+          {downloadError && <p className="text-sm text-red-700" role="alert">{downloadError}</p>}
         </div>
       </div>
 
