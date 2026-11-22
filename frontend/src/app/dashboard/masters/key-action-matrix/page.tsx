@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { api, apiErrorMessage } from '@/lib/api';
 
 type BarItem = {
@@ -36,13 +37,15 @@ export default function KeyActionMatrixPage() {
   const [error, setError] = useState('');
   const [showEmpty, setShowEmpty] = useState(false);
 
-  // Dropdown simulation
+  // Dropdown simulation; ?simulation_id= dari halaman Import BARS
   useEffect(() => {
+    const fromQuery = new URLSearchParams(window.location.search).get('simulation_id') ?? '';
     api
       .get<SimulationOption[]>('/simulations/options/all')
       .then((r) => {
         setSimulations(r.data);
-        if (r.data.length && !simulationId) setSimulationId(r.data[0].simulation_id);
+        if (fromQuery && r.data.some((s) => s.simulation_id === fromQuery)) setSimulationId(fromQuery);
+        else if (r.data.length && !simulationId) setSimulationId(r.data[0].simulation_id);
       })
       .catch((e) => setError(apiErrorMessage(e, 'Gagal memuat simulation')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,6 +122,12 @@ export default function KeyActionMatrixPage() {
             />
             Tampilkan key action tanpa BARS
           </label>
+          <Link
+            className="btn-light mb-1"
+            href={`/dashboard/masters/key-action-bars-import${simulationId ? `?simulation_id=${encodeURIComponent(simulationId)}` : ''}`}
+          >
+            Import / Export BARS
+          </Link>
         </div>
       </div>
 

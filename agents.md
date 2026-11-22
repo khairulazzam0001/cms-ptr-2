@@ -18,6 +18,7 @@ Modul **Upload Document**: upload file HTML read-only ke tabel yang sama
 - Frontend: Next.js 14 (App Router) + Tailwind + Axios
 - Integrasi: `googleapis` (Sheets API v4, Drive API v3), `@nestjs/schedule` (cron)
 - Document Generator: TipTap 3.31.4 (frontend, versi dikunci), `sanitize-html` 2.17.0 (backend, dikunci)
+- Import BARS: `exceljs` 4.4.0 (backend, MIT, dikunci) untuk baca/tulis .xlsx
 - Test: Jest + ts-jest (backend, `*.spec.ts`), Vitest 3 + jsdom (frontend, `*.test.ts`)
 
 ## 2. Struktur repo
@@ -94,6 +95,10 @@ cms-ptr-2/
                               tag code/pre/style/script/svg dilewati.
                               Model default gemini-3.6-flash + fallback (3.5-flash, 2.5-flash)
                               saat 404/429/503; ganti via GEMINI_MODEL.
+    src/modules/key-action-bars/ <- Import/Export BARS & behaviour via Excel (lihat §5c):
+                              bars-format.ts (kolom, batas, pola ID), bars-parser.ts &
+                              bars-diff.ts (fungsi murni), bars-workbook.ts (exceljs),
+                              service/controller /key-action-bars/*, *.spec.ts
     src/common/decorators/current-user.decorator.ts <- @CurrentUsername() dari JWT (kolom audit)
     src/modules/masters/example-master/ <- TEMPLATE modul master generik (jangan hapus)
     src/database/seed.ts   <- seed admin + data contoh (Level 3, DSG-ALL, 3 competency,
@@ -126,7 +131,10 @@ cms-ptr-2/
       actors/page.tsx              <- CRUD + paging + filter design/level + superior (self-ref)
       key-action-matrix/page.tsx   <- READ-ONLY: tabel Kompetensi | Key Action | Kode |
                                       BARS POSITIVE/NETRAL/NEGATIVE per simulation
-                                      (filter simulation + checkbox tampilkan tanpa BARS)
+                                      (filter simulation + checkbox tampilkan tanpa BARS,
+                                      ?simulation_id=, tombol Import / Export BARS)
+      key-action-bars-import/page.tsx <- Import BARS: pilih simulation, template/export,
+                                      upload .xlsx -> preview (ringkasan + error per baris) -> simpan
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
       example-masters/page.tsx <- template UI master generik
       documents/page.tsx           <- list dokumen (search, filter status/aktif, paging, aksi)
@@ -142,6 +150,7 @@ cms-ptr-2/
     src/components/emails/EmailEditorForm.tsx <- form halaman email (dipakai new & [id])
     src/lib/uploadDocument.ts  <- tipe, validasi klien, buildPreviewSrcdoc (CSP + buang meta refresh/base)
     src/lib/useLanguages.ts    <- hook daftar bahasa target dari /languages/options/all
+    src/lib/keyActionBars.ts   <- tipe respons Import BARS + helper (validasi .xlsx, nama file unduhan)
     src/components/upload-document/HtmlPreview.tsx <- preview di <iframe sandbox=""> (tanpa izin)
     .env.example           <- NEXT_PUBLIC_API_URL=http://localhost:3001/api
                              (aktif sebagai frontend/.env.local)
@@ -164,7 +173,7 @@ Sumber: https://dbdiagram.io/d/assessment-ano-6ad87bc7f8963ca19c6f79e6
 - **Dibuat oleh `assessment-data` — API read-only + UI (halaman Key Action Matrix)**:
   `master_key_action`, `master_key_action_bars`, `master_key_action_bars_behaviour`
   via `GET /key-action-matrix?simulation_id=...` (gabungan, tanpa CRUD).
-  Halaman: `/dashboard/masters/key-action-matrix`.
+  Halaman: `/dashboard/masters/key-action-matrix`. BARS + behaviour diisi lewat Import BARS (Excel, §5c).
 - **Dibuat oleh `assessment-data` — entity saja (belum ada API/UI)**: `ref_group_rating`,
   `ref_mapping_group_rating`, `trans_batch_project`, `trans_participant`,
   `trans_participant_assessor`, `ref_activity_type`,
@@ -333,6 +342,20 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
   Unduhan: attachment + `nosniff`. File tidak pernah ditulis ke `/uploads` (publik).
 - Upload: multer memory storage, `MAX_HTML_BYTES` 2 MB (terpisah dari `MAX_FILE_MB`), `.html/.htm`, UTF-8.
 
+## 5c. Import BARS (Excel)
+
+- Spesifikasi: `PRD_Import_BARS.md`. Endpoint `/key-action-bars/{template,export,summary,import/preview,import}`;
+  `simulation_id` wajib (kecuali template), simulation dipilih di layar, bukan per baris di file.
+- Sheet `BARS`: 1 baris = 1 behaviour (kolom di `bars-format.ts`). ID dibuat sistem:
+  `{key_action_id}-{bars_type}-{simulation_id}-{bars_no}` dan `{bars_id}-{behaviour_no}`; > 50 karakter = error.
+  `weight` bilangan bulat >= 1 (kosong = 1), `need_ai` kosong = TRUE, key action dicocokkan via `key_action_id` saja.
+- Mode **ganti per simulation** dalam 1 transaksi (baris simulation dikunci): upsert isi file, data aktif yang tidak
+  ada di file -> **soft delete**. Import memvalidasi ulang (tidak percaya preview); ada error -> 400 + `errors[]`.
+- Sheet `Info` menyimpan `simulation_id` asal file; beda dengan simulation terpilih -> error (cegah salah upload).
+- File: `.xlsx` (dicek ekstensi + magic zip), maks 5 MB / 5.000 baris, multer memory storage.
+- Teks dibersihkan dari spasi tepi & zero-width (U+200B dll). Data lama `weight` NULL dianggap 1 saat membandingkan.
+- Nama file unduhan dibentuk di frontend (header `Content-Disposition` tidak terbaca lewat CORS).
+
 ## 6. Sinkronisasi Google (Sheets jalan, Drive mati)
 
 - **Sheets (AKTIF jika dikonfigurasi)**: `SheetsService.collectTables()` = 1 sumber data
@@ -397,9 +420,9 @@ Prioritas kira-kira dari atas. Kerjakan hanya bila diminta user.
 
 ```powershell
 cd backend; npm run build                      # harus 0 error
-cd backend; npm test                           # Jest (documents, sanitize, upload-documents)
+cd backend; npm test                           # Jest (documents, sanitize, upload-documents, key-action-bars)
 cd frontend; npx tsc --noEmit                  # cek tipe (lihat known issue example-masters)
-cd frontend; npm test                          # Vitest (paginator, split/merge, paste, upload preview)
+cd frontend; npm test                          # Vitest (paginator, split/merge, paste, upload preview, import BARS)
 # lalu dengan server jalan + sudah login:
 # POST /api/auth/login -> token
 # GET  /api/assessment-designs?limit=5 (Bearer) -> meta + data

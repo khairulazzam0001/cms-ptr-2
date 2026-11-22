@@ -4,7 +4,7 @@
 |---|---|
 | Produk | CMS Data Master (cms-ptr-2) |
 | Modul | Import/Export `master_key_action_bars` + `master_key_action_bars_behaviour` via file Excel (.xlsx) |
-| Status | Disetujui (2026-11-22) |
+| Status | Disetujui — Fase 1–2 terimplementasi (2026-11-22) |
 | Tanggal | 2026-11-22 |
 | Terkait | Halaman Key Action Matrix (`/dashboard/masters/key-action-matrix`), modul `assessment-data` |
 | Stack | Backend NestJS 10 + TypeORM + MySQL · Frontend Next.js 14 + Tailwind + Axios · Library baru: **`exceljs`** (MIT, backend) |
@@ -149,8 +149,8 @@ Simulation **dipilih di layar**, tidak ditulis per baris.
 - **FR-IB-05** Area pilih file `.xlsx` + tombol **Preview**.
 
 ### 7.2 Template & Export
-- **FR-IB-10** Template: sheet `BARS` berisi header + 1 contoh baris (ditandai sebagai contoh dan
-  boleh dihapus), dropdown validasi untuk `bars_type` dan `need_ai`; sheet `Referensi` berisi daftar
+- **FR-IB-10** Template: sheet `BARS` berisi header saja (contoh baris ditaruh di sheet `Petunjuk` agar
+  tidak ikut ter-import bila lupa dihapus), dropdown validasi untuk `bars_type` dan `need_ai`; sheet `Referensi` berisi daftar
   key action aktif; sheet `Petunjuk`; sheet `Info` berisi simulation terpilih (bila ada).
 - **FR-IB-11** Export: sama dengan template tetapi sheet `BARS` berisi data aktif simulation, urut
   kompetensi → key action → tipe (POSITIVE, NETRAL, NEGATIVE) → `bars_no` → `behaviour_no`.
@@ -276,8 +276,8 @@ Semua error dikumpulkan sekaligus (tidak berhenti di error pertama), maksimal 20
 
 | Fase | Isi |
 |---|---|
-| **1 — Backend** | `exceljs`, parser + validator (fungsi murni + unit test), endpoint preview/import transaksional, template, export, summary |
-| **2 — Frontend** | menu & halaman Import BARS (pilih simulation, unduh template/export, preview, simpan), tombol pintas di Key Action Matrix |
+| **1 — Backend** ✅ | `exceljs`, parser + validator (fungsi murni + unit test), endpoint preview/import transaksional, template, export, summary |
+| **2 — Frontend** ✅ | menu & halaman Import BARS (pilih simulation, unduh template/export, preview, simpan), tombol pintas di Key Action Matrix |
 
 **Prasyarat:** fitur Key Action Matrix yang saat ini masih berupa perubahan lokal (belum di-commit)
 sebaiknya di-commit/di-merge lebih dulu karena modul ini memakai entity dan halamannya.

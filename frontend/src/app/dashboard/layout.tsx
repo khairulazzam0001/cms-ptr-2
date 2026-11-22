@@ -15,6 +15,7 @@ const MENUS = [
   { href: '/dashboard/masters/emails', label: 'Master Email' },
   { href: '/dashboard/masters/actors', label: 'Master Actor' },
   { href: '/dashboard/masters/key-action-matrix', label: 'Key Action Matrix' },
+  { href: '/dashboard/masters/key-action-bars-import', label: 'Import BARS' },
   { href: '/dashboard/masters/documents', label: 'Master Document' },
   { href: '/dashboard/masters/upload-documents', label: 'Upload Document' },
   { href: '/dashboard/masters/sheets-sync', label: 'Sheets Sync' },

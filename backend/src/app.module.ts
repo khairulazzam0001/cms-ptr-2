@@ -14,6 +14,7 @@ import { SheetsModule } from './modules/sheets/sheets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { UploadDocumentsModule } from './modules/upload-documents/upload-documents.module';
 import { TranslateModule } from './modules/translate/translate.module';
+import { KeyActionBarsModule } from './modules/key-action-bars/key-action-bars.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { TranslateModule } from './modules/translate/translate.module';
     DocumentsModule,
     UploadDocumentsModule,
     TranslateModule,
+    KeyActionBarsModule,
   ],
 })
 export class AppModule {}
