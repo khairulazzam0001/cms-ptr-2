@@ -129,10 +129,11 @@ cms-ptr-2/
       emails/[id]/page.tsx         <- halaman edit email + list lampiran (tambah/hapus/buka dokumen)
                                       + terjemahan Subject/Content (dropdown master_language)
       actors/page.tsx              <- CRUD + paging + filter design/level + superior (self-ref)
-      key-action-matrix/page.tsx   <- READ-ONLY: tabel Kompetensi | Key Action | Kode |
+      key-action-matrix/page.tsx   <- tabel Kompetensi | Key Action | Kode |
                                       BARS POSITIVE/NETRAL/NEGATIVE per simulation
                                       (filter simulation + checkbox tampilkan tanpa BARS,
-                                      ?simulation_id=, tombol Import / Export BARS)
+                                      ?simulation_id=, tombol Import / Export BARS,
+                                      tooltip ID saat hover, tombol Hapus BARS = hard delete §5c)
       key-action-bars-import/page.tsx <- Import BARS: pilih simulation, template/export,
                                       upload .xlsx -> preview (ringkasan + error per baris) -> simpan
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
@@ -346,7 +347,11 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
 
 - Spesifikasi: `PRD_Import_BARS.md`. Endpoint `/key-action-bars/{template,export,summary,import/preview,import}`;
   `simulation_id` wajib (kecuali template), simulation dipilih di layar, bukan per baris di file.
-- Sheet `BARS`: 1 baris = 1 behaviour (kolom di `bars-format.ts`). ID dibuat sistem:
+- **Dua format sheet `BARS`**, dikenali dari header saat import (`readBarsWorkbook`): **matriks** (default
+  template/export, `?format=matrix|flat`; kolom `key_action_id`, `{TIPE}`, `{TIPE} behaviour`; blok per key action,
+  nomor dari urutan baris, weight selalu 1 & need_ai selalu TRUE — `parseMatrixRows`, PRD §5.2a) dan **flat**
+  (di bawah — `parseBarsRows`). Keduanya menghasilkan `ParsedBars[]` yang sama; diff/simpan tidak tahu format.
+- Format flat: 1 baris = 1 behaviour (kolom di `bars-format.ts`). ID dibuat sistem:
   `{key_action_id}-{bars_type}-{simulation_id}-{bars_no}` dan `{bars_id}-{behaviour_no}`; > 50 karakter = error.
   `weight` bilangan bulat >= 1 (kosong = 1), `need_ai` kosong = TRUE, key action dicocokkan via `key_action_id` saja.
 - Mode **ganti per simulation** dalam 1 transaksi (baris simulation dikunci): upsert isi file, data aktif yang tidak
@@ -355,6 +360,12 @@ Log dev: `backend/backend-dev.log`, `frontend/frontend-dev.log` (jika dijalankan
 - File: `.xlsx` (dicek ekstensi + magic zip), maks 5 MB / 5.000 baris, multer memory storage.
 - Teks dibersihkan dari spasi tepi & zero-width (U+200B dll). Data lama `weight` NULL dianggap 1 saat membandingkan.
 - Nama file unduhan dibentuk di frontend (header `Content-Disposition` tidak terbaca lewat CORS).
+- ID dicocokkan tanpa beda huruf besar/kecil (kolasi MySQL `_ci`); ID yang sudah tersimpan dipakai apa adanya
+  (`bars-diff.ts`), agar data lama mis. `...-BOTTLENECK-1` tidak dianggap baru + dihapus.
+- **Hapus BARS per simulation = HARD DELETE** (permintaan user, pengecualian aturan soft delete):
+  `DELETE /key-action-bars?simulation_id=...` menghapus fisik semua BARS + behaviour simulation itu, termasuk
+  yang sudah soft delete (behaviour dulu, FK RESTRICT), dalam 1 transaksi. UI: tombol di Key Action Matrix,
+  user wajib mengetik `simulation_id`. Jangan diubah jadi soft delete.
 
 ## 6. Sinkronisasi Google (Sheets jalan, Drive mati)
 

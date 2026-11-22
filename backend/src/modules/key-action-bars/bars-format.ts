@@ -22,6 +22,24 @@ export const COLUMNS = [
 export type ColumnName = (typeof COLUMNS)[number];
 export const REQUIRED_COLUMNS: ColumnName[] = ['key_action_id', 'bars_type', 'bars_no', 'bars_name'];
 
+// Format matriks (default template/export): 1 blok per key action, kolom BARS + behaviour per tipe.
+// Urutan baris = urutan BARS/behaviour; weight selalu 1, need_ai selalu TRUE.
+export const FILE_FORMATS = ['matrix', 'flat'] as const;
+export type FileFormat = (typeof FILE_FORMATS)[number];
+export const MATRIX_KEY_COLUMN = 'key_action_id';
+export const matrixBehaviourColumn = (type: BarsType) => `${type} behaviour`;
+export const MATRIX_COLUMNS = [
+  MATRIX_KEY_COLUMN,
+  ...BARS_TYPES.flatMap((t) => [t, matrixBehaviourColumn(t)]),
+] as const;
+
+export type MatrixRawRow = {
+  row: number;
+  key_action_id: RawCell;
+  bars: Partial<Record<BarsType, RawCell>>;
+  behaviours: Partial<Record<BarsType, RawCell>>;
+};
+
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_DATA_ROWS = 5000;
 export const MAX_ERRORS_SHOWN = 200;

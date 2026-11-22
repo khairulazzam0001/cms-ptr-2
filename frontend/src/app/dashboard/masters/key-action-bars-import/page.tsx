@@ -8,10 +8,13 @@ import {
   BARS_TYPES,
   CurrentSummary,
   ImportResult,
+  FILE_FORMATS,
+  FORMAT_LABEL,
+  FileFormat,
   RowError,
-  TEMPLATE_FILE_NAME,
   checkXlsxFile,
   exportFileName,
+  templateFileName,
   hasChanges,
   importErrorsFrom,
 } from '@/lib/keyActionBars';
@@ -61,6 +64,7 @@ export default function ImportBarsPage() {
   const [message, setMessage] = useState('');
   const [downloading, setDownloading] = useState<'' | 'template' | 'export'>('');
   const [downloadError, setDownloadError] = useState('');
+  const [format, setFormat] = useState<FileFormat>('matrix');
   const [busy, setBusy] = useState<'' | 'preview' | 'save' | 'download'>('');
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -163,9 +167,13 @@ export default function ImportBarsPage() {
     setDownloadError('');
     try {
       if (kind === 'template') {
-        await downloadXlsx('/key-action-bars/template', simulationId ? { simulation_id: simulationId } : {}, TEMPLATE_FILE_NAME);
+        await downloadXlsx(
+          '/key-action-bars/template',
+          simulationId ? { simulation_id: simulationId, format } : { format },
+          templateFileName(format),
+        );
       } else {
-        await downloadXlsx('/key-action-bars/export', { simulation_id: simulationId }, exportFileName(simulationId));
+        await downloadXlsx('/key-action-bars/export', { simulation_id: simulationId, format }, exportFileName(simulationId, new Date(), format));
       }
     } catch (e) {
       setDownloadError(await blobErrorMessage(e, 'Gagal mengunduh'));
@@ -214,7 +222,19 @@ export default function ImportBarsPage() {
           </div>
         )}
         <div className="ml-auto flex flex-col items-end gap-1">
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold" htmlFor="bars-format">Format file</label>
+            <select
+              id="bars-format"
+              className="input"
+              value={format}
+              onChange={(e) => setFormat(e.target.value as FileFormat)}
+              title="Format untuk Unduh template & Export data. Saat import, format dikenali otomatis."
+            >
+              {FILE_FORMATS.map((f) => (
+                <option key={f} value={f}>{FORMAT_LABEL[f]}</option>
+              ))}
+            </select>
             <button className="btn-light" onClick={() => download('template')} disabled={busy !== ''}>
               {downloading === 'template' ? 'Mengunduh…' : 'Unduh template'}
             </button>
@@ -242,6 +262,10 @@ export default function ImportBarsPage() {
           </button>
           {!simulationId && <span className="text-sm text-slate-500">Pilih simulation dulu.</span>}
         </div>
+        <p className="text-xs text-slate-500">
+          File format matriks maupun flat bisa diupload; format dikenali otomatis dari judul kolom. Format matriks:
+          weight selalu 1 dan need_ai selalu TRUE.
+        </p>
         {message && <p className="text-sm text-red-700" role="alert">{message}</p>}
       </div>
 
@@ -260,6 +284,7 @@ export default function ImportBarsPage() {
             <h2 className="font-semibold">{saved ? 'Hasil import' : 'Preview'}</h2>
             <span className="text-sm text-slate-500">
               {simulation?.simulation_name ?? simulationId} · {(result ?? saved)?.rows_read} baris dibaca
+              {(result ?? saved)?.format && ` · format ${FORMAT_LABEL[(result ?? saved)!.format!].toLowerCase()}`}
             </span>
             {result && result.valid && !hasChanges(result.summary) && (
               <span className="text-sm text-slate-500">Tidak ada perubahan dibanding data saat ini.</span>

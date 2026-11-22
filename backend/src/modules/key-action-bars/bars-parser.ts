@@ -3,8 +3,11 @@ import {
   BARS_TYPES,
   BarsType,
   DEFAULT_WEIGHT,
+  MATRIX_KEY_COLUMN,
   MAX_ID_LENGTH,
+  MatrixRawRow,
   ParsedBars,
+  matrixBehaviourColumn,
   RawCell,
   RawRow,
   RowError,
@@ -127,4 +130,72 @@ export function parseBarsRows(rows: RawRow[], simulationId: string, validKeyActi
   }
 
   return { bars: [...barsMap.values()], errors };
+}
+
+// Format matriks: kolom key_action_id membuka blok key action (kosong = lanjutan blok di atasnya);
+// kolom {TIPE} membuka BARS baru; kolom "{TIPE} behaviour" menempel ke BARS terakhir tipe itu
+// (boleh di baris yang sama atau di bawahnya). Nomor urut dari urutan baris.
+export function parseMatrixRows(rows: MatrixRawRow[], simulationId: string, validKeyActionIds: Set<string>): ParseResult {
+  const errors: RowError[] = [];
+  const err = (row: number, column: string, message: string) => errors.push({ row, column, message });
+  const result: ParsedBars[] = [];
+  const seenKeyActions = new Map<string, number>(); // lower(key_action_id) -> baris
+  // Blok aktif; null = belum ada blok, 'skip' = blok key action tidak valid (barisnya dilewati)
+  let block: { keyActionId: string; bars: Record<BarsType, ParsedBars[]> } | 'skip' | null = null;
+
+  for (const r of rows) {
+    const keyActionId = cleanText(r.key_action_id);
+    if (keyActionId) {
+      const prev = seenKeyActions.get(keyActionId.toLowerCase());
+      if (prev !== undefined) {
+        err(r.row, MATRIX_KEY_COLUMN, `Key action "${keyActionId}" sudah ditulis di baris ${prev}; satukan dalam 1 blok`);
+        block = 'skip';
+      } else if (!validKeyActionIds.has(keyActionId)) {
+        err(r.row, MATRIX_KEY_COLUMN, `Key action "${keyActionId}" tidak ada di master`);
+        seenKeyActions.set(keyActionId.toLowerCase(), r.row);
+        block = 'skip';
+      } else {
+        seenKeyActions.set(keyActionId.toLowerCase(), r.row);
+        block = { keyActionId, bars: { POSITIVE: [], NETRAL: [], NEGATIVE: [] } };
+      }
+    } else if (block === null) {
+      err(r.row, MATRIX_KEY_COLUMN, 'Wajib diisi di baris pertama blok key action');
+      block = 'skip';
+    }
+    if (block === 'skip') continue;
+
+    for (const type of BARS_TYPES) {
+      const barsName = cleanText(r.bars[type]);
+      const behaviour = cleanText(r.behaviours[type]);
+      const list = block.bars[type];
+      if (barsName) {
+        const barsNo = list.length + 1;
+        const barsId = barsIdOf(block.keyActionId, type, simulationId, barsNo);
+        if (barsId.length > MAX_ID_LENGTH) {
+          err(r.row, type, `ID BARS "${barsId}" melebihi ${MAX_ID_LENGTH} karakter`);
+          continue;
+        }
+        const bars: ParsedBars = {
+          bars_id: barsId, key_action_id: block.keyActionId, bars_type: type, bars_no: barsNo,
+          bars_name: barsName, need_ai: true, row: r.row, behaviours: [],
+        };
+        list.push(bars);
+        result.push(bars);
+      }
+      if (!behaviour) continue;
+      const bars = list[list.length - 1];
+      if (!bars) {
+        err(r.row, matrixBehaviourColumn(type), `Behaviour belum punya BARS ${type} di atasnya (isi kolom ${type} dulu)`);
+        continue;
+      }
+      const behaviourNo = bars.behaviours.length + 1;
+      const behaviourId = behaviourIdOf(bars.bars_id, behaviourNo);
+      if (behaviourId.length > MAX_ID_LENGTH) {
+        err(r.row, matrixBehaviourColumn(type), `ID behaviour "${behaviourId}" melebihi ${MAX_ID_LENGTH} karakter`);
+        continue;
+      }
+      bars.behaviours.push({ bars_behaviour_id: behaviourId, behaviour_no: behaviourNo, bars_behaviour: behaviour, weight: DEFAULT_WEIGHT, row: r.row });
+    }
+  }
+  return { bars: result, errors };
 }

@@ -16,6 +16,7 @@ export type ImportResult = {
   simulation_id: string;
   simulation_name?: string | null;
   rows_read: number;
+  format?: FileFormat; // format yang dikenali server dari header file
   valid: boolean;
   summary: ImportSummary;
   errors: RowError[];
@@ -40,12 +41,19 @@ export function checkXlsxFile(file: File): string | null {
   return null;
 }
 
+// Format file: matriks (default, seperti Key Action Matrix) atau flat (1 baris = 1 behaviour).
+// Saat import, server mengenali format dari header; pilihan ini hanya untuk template/export.
+export const FILE_FORMATS = ['matrix', 'flat'] as const;
+export type FileFormat = (typeof FILE_FORMATS)[number];
+export const FORMAT_LABEL: Record<FileFormat, string> = { matrix: 'Matriks', flat: 'Flat (1 baris = 1 behaviour)' };
+
 // Nama file unduhan dibentuk di klien (Content-Disposition tidak terbaca lewat CORS)
-export function exportFileName(simulationId: string, now = new Date()): string {
+const suffix = (format: FileFormat) => (format === 'flat' ? '_flat' : '');
+export function exportFileName(simulationId: string, now = new Date(), format: FileFormat = 'matrix'): string {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `BARS_${simulationId}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.xlsx`;
+  return `BARS_${simulationId}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${suffix(format)}.xlsx`;
 }
-export const TEMPLATE_FILE_NAME = 'BARS_template.xlsx';
+export const templateFileName = (format: FileFormat = 'matrix') => `BARS_template${suffix(format)}.xlsx`;
 
 // Error 400 dari POST /import membawa daftar error yang sama dengan preview
 export function importErrorsFrom(data: unknown): { errors: RowError[]; error_total: number } | null {

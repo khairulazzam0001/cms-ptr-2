@@ -1,5 +1,5 @@
-import { RawRow } from './bars-format';
-import { cleanText, parseBarsRows } from './bars-parser';
+import { MatrixRawRow, RawRow } from './bars-format';
+import { cleanText, parseBarsRows, parseMatrixRows } from './bars-parser';
 
 const KA = new Set(['CI1', 'CI2']);
 let rowNo = 1;
@@ -115,5 +115,74 @@ describe('parseBarsRows', () => {
     );
     expect(errors).toEqual([]);
     expect(bars.map((b) => b.need_ai)).toEqual([true, false, false, false]);
+  });
+});
+
+// Format matriks: [key_action_id, POSITIVE, POSITIVE behaviour, NETRAL, NETRAL behaviour, NEGATIVE, NEGATIVE behaviour]
+const m = (row: number, cells: (string | null)[]): MatrixRawRow => ({
+  row,
+  key_action_id: cells[0] ?? null,
+  bars: { POSITIVE: cells[1] ?? null, NETRAL: cells[3] ?? null, NEGATIVE: cells[5] ?? null },
+  behaviours: { POSITIVE: cells[2] ?? null, NETRAL: cells[4] ?? null, NEGATIVE: cells[6] ?? null },
+});
+const KA_BA = new Set(['BA1', 'CI1']);
+const summarize = (bars: ReturnType<typeof parseMatrixRows>['bars']) =>
+  bars.map((b) => [b.bars_id, b.bars_name, b.need_ai, b.behaviours.map((h) => `${h.bars_behaviour_id}=${h.bars_behaviour}|${h.weight}`)]);
+
+describe('parseMatrixRows (format matriks)', () => {
+  it('contoh template user: BARS di 1 baris, behaviour di baris bawahnya', () => {
+    const { bars, errors } = parseMatrixRows([
+      m(2, ['BA1', 'Ini Bars Satu Positive', null, 'Ini Bars Satu NETRAL', null, 'Ini Bars Satu NEGATIVE', null]),
+      m(3, [null, null, 'Ini Bars Satu Positive - Bars Behaviour 1', null, 'Ini Bars Satu NETRAL - Bars Behaviour 1', null, 'Ini Bars Satu NEGATIVE - Bars Behaviour 1']),
+      m(4, [null, null, 'Ini Bars Satu Positive - Bars Behaviour 2', null, null, null, null]),
+      m(5, [null, 'Ini Bars Dua Positive', null, null, null, null, null]),
+      m(6, [null, null, 'Ini Bars Dua Positive - Bars Behaviour 1', null, null, null, null]),
+    ], 'sim', KA_BA);
+    expect(errors).toEqual([]);
+    expect(summarize(bars)).toEqual([
+      ['BA1-POSITIVE-sim-1', 'Ini Bars Satu Positive', true, ['BA1-POSITIVE-sim-1-1=Ini Bars Satu Positive - Bars Behaviour 1|1', 'BA1-POSITIVE-sim-1-2=Ini Bars Satu Positive - Bars Behaviour 2|1']],
+      ['BA1-NETRAL-sim-1', 'Ini Bars Satu NETRAL', true, ['BA1-NETRAL-sim-1-1=Ini Bars Satu NETRAL - Bars Behaviour 1|1']],
+      ['BA1-NEGATIVE-sim-1', 'Ini Bars Satu NEGATIVE', true, ['BA1-NEGATIVE-sim-1-1=Ini Bars Satu NEGATIVE - Bars Behaviour 1|1']],
+      ['BA1-POSITIVE-sim-2', 'Ini Bars Dua Positive', true, ['BA1-POSITIVE-sim-2-1=Ini Bars Dua Positive - Bars Behaviour 1|1']],
+    ]);
+  });
+
+  it('behaviour boleh sebaris dengan BARS; blok key action baru mengulang nomor dari 1', () => {
+    const { bars, errors } = parseMatrixRows([
+      m(2, ['BA1', 'P1', 'p1.1', null, null, 'N1', null]),
+      m(3, [null, null, 'p1.2', null, null, null, null]),
+      m(4, ['CI1', 'P1 CI1', 'x', null, null, null, null]),
+    ], 'sim', KA_BA);
+    expect(errors).toEqual([]);
+    expect(summarize(bars)).toEqual([
+      ['BA1-POSITIVE-sim-1', 'P1', true, ['BA1-POSITIVE-sim-1-1=p1.1|1', 'BA1-POSITIVE-sim-1-2=p1.2|1']],
+      ['BA1-NEGATIVE-sim-1', 'N1', true, []],
+      ['CI1-POSITIVE-sim-1', 'P1 CI1', true, ['CI1-POSITIVE-sim-1-1=x|1']],
+    ]);
+  });
+
+  it('error: baris pertama tanpa key action, behaviour tanpa BARS, key action tidak ada / ganda', () => {
+    const { bars, errors } = parseMatrixRows([
+      m(2, [null, 'Yatim', null, null, null, null, null]),
+      m(3, ['BA1', null, 'tanpa bars', null, null, null, null]),
+      m(4, [null, 'P1', null, null, null, null, null]),
+      m(5, ['XX9', 'P1', null, null, null, null, null]),
+      m(6, [null, 'ikut dilewati', null, null, null, null, null]),
+      m(7, ['ba1', 'P lagi', null, null, null, null, null]),
+    ], 'sim', KA_BA);
+    expect(errors.map((e) => [e.row, e.column])).toEqual([
+      [2, 'key_action_id'],
+      [3, 'POSITIVE behaviour'],
+      [5, 'key_action_id'],
+      [7, 'key_action_id'],
+    ]);
+    expect(errors[3].message).toContain('baris 3');
+    expect(bars.map((b) => b.bars_id)).toEqual(['BA1-POSITIVE-sim-1']);
+  });
+
+  it('ID melebihi 50 karakter -> error di kolom tipe', () => {
+    const longKa = 'K'.repeat(40);
+    const { errors } = parseMatrixRows([m(2, [longKa, 'P', null, null, null, null, null])], 'sim', new Set([longKa]));
+    expect(errors).toEqual([expect.objectContaining({ row: 2, column: 'POSITIVE' })]);
   });
 });

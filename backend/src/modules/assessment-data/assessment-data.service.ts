@@ -557,7 +557,10 @@ export class AssessmentDataService {
                 (a.sort_order ?? 0) - (b2.sort_order ?? 0) ||
                 a.bars_behaviour_id.localeCompare(b2.bars_behaviour_id),
             )
-            .map((beh) => beh.bars_behaviour as string),
+            .map((beh) => ({
+              bars_behaviour_id: beh.bars_behaviour_id,
+              bars_behaviour: beh.bars_behaviour as string,
+            })),
         }));
 
     return actions.map((action) => ({

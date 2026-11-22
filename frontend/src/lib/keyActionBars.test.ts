@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkXlsxFile, exportFileName, hasChanges, importErrorsFrom, ImportSummary } from './keyActionBars';
+import { checkXlsxFile, exportFileName, hasChanges, importErrorsFrom, ImportSummary, templateFileName } from './keyActionBars';
 
 const f = (name: string, size: number) => new File([new Uint8Array(size)], name);
 const zero = { new: 0, changed: 0, unchanged: 0, deleted: 0 };
@@ -21,6 +21,12 @@ describe('keyActionBars helpers', () => {
 
   it('exportFileName: BARS_{simulation}_{yyyymmdd}.xlsx', () => {
     expect(exportFileName('bottleneck', new Date(2026, 10, 5))).toBe('BARS_bottleneck_20261105.xlsx');
+    expect(exportFileName('bottleneck', new Date(2026, 10, 5), 'flat')).toBe('BARS_bottleneck_20261105_flat.xlsx');
+  });
+
+  it('templateFileName: matriks default, flat diberi akhiran', () => {
+    expect(templateFileName()).toBe('BARS_template.xlsx');
+    expect(templateFileName('flat')).toBe('BARS_template_flat.xlsx');
   });
 
   it('importErrorsFrom: mengambil daftar error dari respons 400', () => {

@@ -4,7 +4,7 @@
 |---|---|
 | Produk | CMS Data Master (cms-ptr-2) |
 | Modul | Import/Export `master_key_action_bars` + `master_key_action_bars_behaviour` via file Excel (.xlsx) |
-| Status | Disetujui — Fase 1–2 terimplementasi (2026-11-22) |
+| Status | Disetujui — Fase 1–2 terimplementasi (2026-11-22); format matriks §5.2a (2026-11-23) |
 | Tanggal | 2026-11-22 |
 | Terkait | Halaman Key Action Matrix (`/dashboard/masters/key-action-matrix`), modul `assessment-data` |
 | Stack | Backend NestJS 10 + TypeORM + MySQL · Frontend Next.js 14 + Tailwind + Axios · Library baru: **`exceljs`** (MIT, backend) |
@@ -99,6 +99,35 @@ Contoh:
 | CI1 | POSITIVE | 1 | Menemukan permasalahan secara utuh dari data | 1 | Membaca seluruh data yang tersedia | | TRUE |
 | CI1 | POSITIVE | 1 | Menemukan permasalahan secara utuh dari data | 2 | Menyimpulkan akar masalah | 2 | TRUE |
 | CI1 | NEGATIVE | 1 | Keliru dalam mengidentifikasi masalah | | | | |
+
+### 5.2a Format matriks (default template & export, 2026-11-23)
+
+Sheet `BARS` dalam format matriks meniru tampilan Key Action Matrix. Format lama (5.2, "flat") tetap didukung.
+Saat import, sistem **mengenali format dari header** baris 1: ada `bars_type` → flat; ada `POSITIVE` → matriks.
+Template & export memakai format matriks kecuali dipilih "Flat" di halaman Import BARS (`?format=flat`).
+
+| Kolom | Aturan |
+|---|---|
+| `key_action_id` | membuka blok key action (harus ada di master). Kosong = baris lanjutan blok di atasnya. 1 key action = 1 blok; muncul lagi (huruf besar/kecil diabaikan) → error |
+| `POSITIVE` / `NETRAL` / `NEGATIVE` | nama BARS; tiap sel terisi = BARS baru. `bars_no` = urutan baris dalam key action + tipe |
+| `POSITIVE behaviour` / `NETRAL behaviour` / `NEGATIVE behaviour` | behaviour milik BARS terakhir tipe yang sama, **boleh sebaris** dengan nama BARS atau di bawahnya. `behaviour_no` = urutan baris |
+
+- `weight` selalu **1** dan `need_ai` selalu **TRUE** (keputusan user; data yang ada saat keputusan diambil
+  memang semuanya 1/TRUE). Butuh nilai lain → pakai format flat.
+- Error: baris pertama tanpa `key_action_id`; behaviour tanpa BARS di atasnya; key action tidak ada / ganda
+  (seluruh blok dilewati); ID > 50 karakter. Header matriks wajib lengkap 7 kolom.
+- Urutan baris = data: sort/filter di Excel merusak struktur; menyisipkan BARS di tengah menggeser nomor
+  (dan ID) BARS di bawahnya.
+
+| key_action_id | POSITIVE | POSITIVE behaviour | NETRAL | NETRAL behaviour | NEGATIVE | NEGATIVE behaviour |
+|---|---|---|---|---|---|---|
+| BA1 | Ini Bars Satu Positive | | Ini Bars Satu NETRAL | | Ini Bars Satu NEGATIVE | |
+| | | Ini Bars Satu Positive - Bars Behaviour 1 | | Ini Bars Satu NETRAL - Bars Behaviour 1 | | Ini Bars Satu NEGATIVE - Bars Behaviour 1 |
+| | | Ini Bars Satu Positive - Bars Behaviour 2 | | | | |
+| | Ini Bars Dua Positive | | | | | |
+| | | Ini Bars Dua Positive - Bars Behaviour 1 | | | | |
+
+→ BA1 POSITIVE no 1 (2 behaviour), POSITIVE no 2 (1), NETRAL no 1 (1), NEGATIVE no 1 (1).
 
 ### 5.3 Pembersihan nilai
 - Spasi di awal/akhir dipangkas; karakter tak terlihat (zero-width space U+200B, U+FEFF, dll.)

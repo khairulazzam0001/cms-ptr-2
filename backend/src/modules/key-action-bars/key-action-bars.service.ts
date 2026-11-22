@@ -3,9 +3,9 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { Simulation } from '../assessment/entities';
 import { KeyAction, KeyActionBars, KeyActionBarsBehaviour } from '../assessment-data/entities';
-import { BARS_TYPES, MAX_ERRORS_SHOWN, ParsedBars, RowError } from './bars-format';
+import { BARS_TYPES, FileFormat, MAX_ERRORS_SHOWN, ParsedBars, RowError } from './bars-format';
 import { ImportPlan, planImport } from './bars-diff';
-import { cleanText, parseBarsRows } from './bars-parser';
+import { cleanText, parseBarsRows, parseMatrixRows } from './bars-parser';
 import { ExportRow, ReferenceKeyAction, UploadedXlsx, readBarsWorkbook, writeBarsWorkbook } from './bars-workbook';
 
 // Import / export BARS & behaviour per simulation (PRD_Import_BARS.md).
@@ -13,7 +13,7 @@ const CHUNK = 500;
 const chunks = <T>(items: T[]) => Array.from({ length: Math.ceil(items.length / CHUNK) }, (_, i) => items.slice(i * CHUNK, (i + 1) * CHUNK));
 const TYPE_ORDER = new Map<string, number>(BARS_TYPES.map((t, i) => [t, i]));
 
-type Parsed = { simulation: Simulation; bars: ParsedBars[]; errors: RowError[]; warnings: string[]; rowsRead: number };
+type Parsed = { simulation: Simulation; bars: ParsedBars[]; errors: RowError[]; warnings: string[]; rowsRead: number; format: FileFormat };
 
 @Injectable()
 export class KeyActionBarsService {
@@ -69,13 +69,13 @@ export class KeyActionBarsService {
     return { simulation_id: simulationId, bars, bars_total: rows.reduce((s, r) => s + Number(r.n), 0), behaviours: behaviourCount };
   }
 
-  async template(simulationId?: string) {
+  async template(simulationId?: string, format: FileFormat = 'matrix') {
     const simulation = simulationId ? await this.findSimulation(simulationId) : null;
-    const buffer = await writeBarsWorkbook({ simulation, rows: [], keyActions: await this.referenceKeyActions() });
+    const buffer = await writeBarsWorkbook({ simulation, rows: [], keyActions: await this.referenceKeyActions(), format });
     return { buffer, filename: 'BARS_template.xlsx' };
   }
 
-  async export(simulationId: string) {
+  async export(simulationId: string, format: FileFormat = 'matrix') {
     const simulation = await this.findSimulation(simulationId);
     const keyActions = await this.keyActions.find({ where: { is_deleted: false } });
     const kaOrder = new Map(keyActions.map((k) => [k.key_action_id, k]));
@@ -103,9 +103,34 @@ export class KeyActionBarsService {
       if (!active.length) rows.push({ ...base, behaviour_no: null, behaviour: null, weight: null });
       for (const h of active) rows.push({ ...base, behaviour_no: h.sort_order, behaviour: h.bars_behaviour ?? '', weight: h.weight ?? null });
     }
-    const buffer = await writeBarsWorkbook({ simulation, rows, keyActions: await this.referenceKeyActions() });
+    const buffer = await writeBarsWorkbook({ simulation, rows, keyActions: await this.referenceKeyActions(), format });
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     return { buffer, filename: `BARS_${simulationId}_${date}.xlsx` };
+  }
+
+  // HARD DELETE semua BARS + behaviour milik simulation (termasuk yang sudah soft delete).
+  // Pengecualian sengaja dari aturan soft delete (permintaan user); tidak bisa dibatalkan.
+  // Behaviour dihapus dulu karena FK fk_bars_behaviour_action_bars ON DELETE RESTRICT.
+  async purge(simulationId: string) {
+    await this.findSimulation(simulationId);
+    return this.dataSource.transaction(async (m) => {
+      await m.findOne(Simulation, { where: { simulation_id: simulationId }, lock: { mode: 'pessimistic_write' } });
+      const barsIds = m
+        .createQueryBuilder()
+        .subQuery()
+        .select('b.bars_id')
+        .from(KeyActionBars, 'b')
+        .where('b.simulation_id = :sid')
+        .getQuery();
+      const behaviours = await m
+        .createQueryBuilder()
+        .delete()
+        .from(KeyActionBarsBehaviour)
+        .where(`bars_id IN ${barsIds}`, { sid: simulationId })
+        .execute();
+      const bars = await m.delete(KeyActionBars, { simulation_id: simulationId });
+      return { simulation_id: simulationId, bars_deleted: bars.affected ?? 0, behaviours_deleted: behaviours.affected ?? 0 };
+    });
   }
 
   // ---------- internal ----------
@@ -118,10 +143,14 @@ export class KeyActionBarsService {
       errors.push({ row: null, column: null, message: `File ini milik simulation "${read.infoSimulationId}", bukan "${simulationId}"` });
     }
     const valid = new Set((await this.keyActions.find({ where: { is_deleted: false }, select: { key_action_id: true } })).map((k) => k.key_action_id));
-    const parsed = parseBarsRows(read.rows, simulationId, valid);
+    const parsed =
+      read.format === 'matrix'
+        ? parseMatrixRows(read.matrixRows, simulationId, valid)
+        : parseBarsRows(read.rows, simulationId, valid);
     errors.push(...parsed.errors);
     const warnings = read.unknownColumns.length ? [`Kolom tidak dikenal diabaikan: ${read.unknownColumns.join(', ')}`] : [];
-    return { simulation, bars: parsed.bars, errors, warnings, rowsRead: read.rows.length };
+    const rowsRead = read.format === 'matrix' ? read.matrixRows.length : read.rows.length;
+    return { simulation, bars: parsed.bars, errors, warnings, rowsRead, format: read.format };
   }
 
   // Data simulation di DB termasuk yang sudah di-soft delete (ID yang sama dihidupkan lagi)
@@ -184,6 +213,7 @@ export class KeyActionBarsService {
       simulation_id: parsed.simulation.simulation_id,
       simulation_name: parsed.simulation.simulation_name,
       rows_read: parsed.rowsRead,
+      format: parsed.format,
       valid: parsed.errors.length === 0,
       summary: plan.summary,
       errors: parsed.errors.slice(0, MAX_ERRORS_SHOWN),
