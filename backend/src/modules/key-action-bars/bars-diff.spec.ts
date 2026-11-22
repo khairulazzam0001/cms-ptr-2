@@ -35,6 +35,27 @@ describe('planImport (mode ganti per simulation)', () => {
     expect(p.summary.behaviours.unchanged).toBe(1);
   });
 
+  it('ID beda huruf besar/kecil dengan data lama -> dianggap sama, ID lama dipakai', () => {
+    const p = planImport(
+      [parsedBars({ bars_name: 'Baru' })],
+      [oldBars({ bars_id: 'CI1-POSITIVE-SIM-1' })],
+      [oldBeh({ bars_behaviour_id: 'CI1-POSITIVE-SIM-1-1', bars_id: 'CI1-POSITIVE-SIM-1' })],
+    );
+    expect([p.barsInsert, p.barsDelete, p.behaviourInsert, p.behaviourDelete].map((x) => x.length)).toEqual([0, 0, 0, 0]);
+    expect(p.barsUpdate[0].bars_id).toBe('CI1-POSITIVE-SIM-1');
+    expect(p.summary.bars.POSITIVE.changed).toBe(1);
+    expect(p.summary.behaviours.unchanged).toBe(1);
+  });
+
+  it('BARS baru di bawah ID lama memakai ID BARS lama untuk behaviour-nya', () => {
+    const p = planImport(
+      [parsedBars({ behaviours: [...parsedBars().behaviours, { bars_behaviour_id: 'CI1-POSITIVE-sim-1-2', behaviour_no: 2, bars_behaviour: 'Beh 2', weight: 1, row: 3 }] })],
+      [oldBars({ bars_id: 'CI1-POSITIVE-SIM-1' })],
+      [oldBeh({ bars_behaviour_id: 'CI1-POSITIVE-SIM-1-1', bars_id: 'CI1-POSITIVE-SIM-1' })],
+    );
+    expect(p.behaviourInsert).toEqual([expect.objectContaining({ bars_behaviour_id: 'CI1-POSITIVE-SIM-1-2', bars_id: 'CI1-POSITIVE-SIM-1' })]);
+  });
+
   it('perubahan nama/need_ai/urutan & behaviour -> diubah', () => {
     const p = planImport([parsedBars({ bars_name: 'Baru', behaviours: [{ bars_behaviour_id: 'CI1-POSITIVE-sim-1-1', behaviour_no: 1, bars_behaviour: 'Beh 1', weight: 3, row: 2 }] })], [oldBars()], [oldBeh()]);
     expect(p.barsUpdate).toHaveLength(1);

@@ -1,6 +1,6 @@
 // Rencana "ganti per simulation" (PRD_Import_BARS.md FR-IB-31): bandingkan isi file dengan data
 // simulation di DB (termasuk yang sudah di-soft delete, agar ID yang sama dihidupkan lagi). Fungsi murni.
-import { BARS_TYPES, BarsType, DEFAULT_WEIGHT, ParsedBars, ParsedBehaviour } from './bars-format';
+import { BARS_TYPES, BarsType, DEFAULT_WEIGHT, ParsedBars, ParsedBehaviour, behaviourIdOf } from './bars-format';
 
 export type ExistingBars = {
   bars_id: string;
@@ -38,7 +38,30 @@ export type ImportPlan = {
   summary: ImportSummary;
 };
 
-export function planImport(parsed: ParsedBars[], existingBars: ExistingBars[], existingBehaviours: ExistingBehaviour[]): ImportPlan {
+// Kolasi MySQL (utf8mb4_unicode_ci) tidak membedakan huruf besar/kecil, jadi ID dicocokkan dengan cara
+// yang sama. ID yang sudah tersimpan dipakai apa adanya, mis. data lama "CI1-POSITIVE-BOTTLENECK-1"
+// tetap cocok dengan ID file "CI1-POSITIVE-bottleneck-1" dan tidak dianggap baru + dihapus.
+const idKey = (id: string) => id.toLowerCase();
+
+function canonicalize(parsed: ParsedBars[], existingBars: ExistingBars[], existingBehaviours: ExistingBehaviour[]): ParsedBars[] {
+  const barsIds = new Map(existingBars.map((b) => [idKey(b.bars_id), b.bars_id]));
+  const behaviourIds = new Map(existingBehaviours.map((b) => [idKey(b.bars_behaviour_id), b.bars_behaviour_id]));
+  return parsed.map((bars) => {
+    const barsId = barsIds.get(idKey(bars.bars_id)) ?? bars.bars_id;
+    return {
+      ...bars,
+      bars_id: barsId,
+      // Behaviour baru di bawah BARS lama ikut memakai ID BARS yang tersimpan
+      behaviours: bars.behaviours.map((h) => {
+        const id = behaviourIdOf(barsId, h.behaviour_no);
+        return { ...h, bars_behaviour_id: behaviourIds.get(idKey(id)) ?? id };
+      }),
+    };
+  });
+}
+
+export function planImport(fileBars: ParsedBars[], existingBars: ExistingBars[], existingBehaviours: ExistingBehaviour[]): ImportPlan {
+  const parsed = canonicalize(fileBars, existingBars, existingBehaviours);
   const plan: ImportPlan = {
     barsInsert: [],
     barsUpdate: [],
