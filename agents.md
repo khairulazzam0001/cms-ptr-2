@@ -52,7 +52,8 @@ cms-ptr-2/
                               AssessmentDesignsController
       assessment.module.ts
     src/modules/assessment-data/  <- tabel pelengkap ERD (lihat §2a)
-      entities.ts          <- 16 entity: master_key_action, ref_group_rating,
+      entities.ts          <- 18 entity: master_key_action, master_key_action_bars,
+                              master_key_action_bars_behaviour, ref_group_rating,
                               ref_mapping_group_rating, trans_batch_project, trans_participant,
                               trans_participant_assessor, master_actor, ref_activity_type,
                               master_activity, master_prompt, master_scenario_activity,
@@ -62,12 +63,15 @@ cms-ptr-2/
       assessment-data.service.ts <- CRUD 5 master (actor/activity/scenario-activity/chat/email):
                               soft delete, revive id yang sudah dihapus, clean() -> '' jadi NULL
                               untuk kolom FK, applySearch() dukung kolom ber-alias;
-                              lampiran email: list/attach/detach + resolve doc_content_id -> dokumen
+                              lampiran email: list/attach/detach + resolve doc_content_id -> dokumen;
+                              getKeyActionMatrix(simulation_id): gabungan key action + BARS +
+                              behaviour (read-only, dipakai halaman Key Action Matrix)
       controllers.ts       <- /activities, /scenario-activities, /chats, /emails, /actors
                               (email: GET /emails/:id, GET|POST /emails/:id/attachments,
                               DELETE /emails/:id/attachments/:attachmentId)
                               + options: /activity-types/options/all, /actors/options/all,
                               /prompts/options/all
+                              + GET /key-action-matrix?simulation_id=... (read-only)
       assessment-data.module.ts <- TypeOrmModule.forFeature(16 entity) + controllers/providers
     src/modules/sheets/
       sheets.service.ts    <- Sheets API: status(), collectTables(), syncAll(),
@@ -120,6 +124,9 @@ cms-ptr-2/
       emails/[id]/page.tsx         <- halaman edit email + list lampiran (tambah/hapus/buka dokumen)
                                       + terjemahan Subject/Content (dropdown master_language)
       actors/page.tsx              <- CRUD + paging + filter design/level + superior (self-ref)
+      key-action-matrix/page.tsx   <- READ-ONLY: tabel Kompetensi | Key Action | Kode |
+                                      BARS POSITIVE/NETRAL/NEGATIVE per simulation
+                                      (filter simulation + checkbox tampilkan tanpa BARS)
       sheets-sync/page.tsx <- status scheduler + tombol sync + download CSV per tab
       example-masters/page.tsx <- template UI master generik
       documents/page.tsx           <- list dokumen (search, filter status/aktif, paging, aksi)
@@ -154,14 +161,30 @@ Sumber: https://dbdiagram.io/d/assessment-ano-6ad87bc7f8963ca19c6f79e6
   `master_email_attachment` (via `/emails/:id/attachments`), `master_language`
   (dropdown `/languages/options/all`, seed `npm run seed:languages`).
   (halaman: `/dashboard/masters/actors|activities|scenario-activities|chats|emails`).
-- **Dibuat oleh `assessment-data` — entity saja (belum ada API/UI)**: `master_key_action`,
-  `ref_group_rating`, `ref_mapping_group_rating`, `trans_batch_project`, `trans_participant`,
+- **Dibuat oleh `assessment-data` — API read-only + UI (halaman Key Action Matrix)**:
+  `master_key_action`, `master_key_action_bars`, `master_key_action_bars_behaviour`
+  via `GET /key-action-matrix?simulation_id=...` (gabungan, tanpa CRUD).
+  Halaman: `/dashboard/masters/key-action-matrix`.
+- **Dibuat oleh `assessment-data` — entity saja (belum ada API/UI)**: `ref_group_rating`,
+  `ref_mapping_group_rating`, `trans_batch_project`, `trans_participant`,
   `trans_participant_assessor`, `ref_activity_type`,
   `master_prompt`, `master_call`, `master_folder`.
   Dropdown form memakai `/actors|prompts|activity-types/options/all` (kosong sampai di-seed).
-- Tabel dibuat otomatis oleh `synchronize: true` saat backend start (DEV). 45 foreign key
+- Tabel dibuat otomatis oleh `synchronize: true` saat backend start (DEV). 49 foreign key
   mengikuti garis `Ref:` di ERD (termasuk `master_actor.superior` self-reference dan
   `master_folder.{level_id,design_id}`).
+- `master_key_action` mengikuti DDL: `competency_id` NOT NULL dengan FK
+  `fk_key_action_competency` ON DELETE RESTRICT ON UPDATE CASCADE (entity `KeyAction`).
+  `key_action_name` tetap NOT NULL dan `is_deleted` default false sesuai konvensi tabel master.
+- `master_key_action_bars` (entity `KeyActionBars`) mengikuti DDL: FK
+  `fk_action_bars_master_key_action` dan `fk_key_action_bars_master_simulation`, keduanya
+  ON DELETE RESTRICT ON UPDATE CASCADE; `key_action_id` NOT NULL, `simulation_id` nullable.
+- `master_key_action_bars_behaviour` (entity `KeyActionBarsBehaviour`) mengikuti DDL: FK
+  `fk_bars_behaviour_action_bars` (`bars_id`) dan `fk_bars_behaviour_master_key_action`
+  (`key_action_id`), keduanya NOT NULL ON DELETE RESTRICT ON UPDATE CASCADE.
+- Ketiga entity `master_key_action*` memakai `NullableAuditColumns` (tanggal audit nullable)
+  karena data impor berisi NULL; dengan NOT NULL `synchronize` gagal
+  ("Invalid use of NULL value") saat backend start.
 - **Beda sengaja** dari ERD (jangan "dibenarkan" tanpa migrasi data):
   - `master_document_content`: PK `document_content_id` (uuid) + kolom `content_html`,
     bukan `doc_content_id`/`document_content` (dipakai modul Document Generator + Upload).

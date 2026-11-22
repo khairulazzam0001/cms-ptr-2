@@ -1,8 +1,12 @@
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
-// Catatan: semua query param filter WAJIB dideklarasikan di sini.
+export class KeyActionMatrixQueryDto {
+  @IsString()
+  @IsNotEmpty()
+  simulation_id: string;
+}
 // ValidationPipe(whitelist: true) membuang param yang tidak terdaftar.
 
 // ================= MASTER ACTIVITY =================
